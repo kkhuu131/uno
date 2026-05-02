@@ -26,7 +26,8 @@ public final class WildCard extends Card {
                 // No effect, color already set in GameState
                 break;
             case WILD_DRAW_FOUR:
-                gameState.drawCardsForNextPlayer(4);
+                gameState.addPendingDraw(4, DrawType.WILD_DRAW_FOUR);
+                break;
         }
     }
 

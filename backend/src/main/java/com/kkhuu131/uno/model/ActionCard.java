@@ -25,7 +25,7 @@ public final class ActionCard extends Card {
     public void applyEffect(GameState gameState) {
         switch (action) {
             case DRAW_TWO:
-                gameState.drawCardsForNextPlayer(2);
+                gameState.addPendingDraw(2, DrawType.DRAW_TWO);
                 break;
             case SKIP:
                 gameState.skipTurn();

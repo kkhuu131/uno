@@ -18,6 +18,9 @@ public class GameState {
     /** Color players must match when the visible top card is a wild. */
     private Color activeColor;
 
+    private int pendingDraw = 0;
+    private DrawType pendingDrawType = null;
+
     public GameState() {
         currentPlayerIndex = 0;
     }
@@ -143,7 +146,7 @@ public class GameState {
             activeColor = card.getColor();
         }
 
-        advanceTurn();
+        card.applyEffect(this);
     }
 
     private void advanceTurn() {
@@ -161,6 +164,17 @@ public class GameState {
     }
 
     private boolean isValidPlay(Card played, Card topCard) {
+        if (pendingDraw > 0) {
+            if (played instanceof ActionCard ac && ac.getAction() == ActionType.DRAW_TWO) {
+                return pendingDrawType == DrawType.DRAW_TWO; // only stack on +2
+            }
+        
+            if (played instanceof WildCard wc && wc.getType() == WildType.WILD_DRAW_FOUR) {
+                return true; // +4 can stack on both
+            }
+        
+            return false;
+        }
         return played.canBePlayedOn(topCard, activeColor);
     }
 
@@ -187,8 +201,10 @@ public class GameState {
     }
 
     public void drawCardsForNextPlayer(int count) {
+        Player nextPlayer = getNextPlayer();
         for (int i = 0; i < count; i++) {
-            drawCard(getNextPlayer());
+            ensureDrawPileHasCards();
+            nextPlayer.addToHand(deck.remove(0));
         }
     }
 
@@ -197,6 +213,82 @@ public class GameState {
     }
 
     public void reverseDirection() {
-        isClockwise = !isClockwise;
+        if (players.size() > 2) {
+            isClockwise = !isClockwise;
+        }
+        else {
+            skipTurn();
+        }
+    }
+
+    public boolean isPlayable(Card card) {
+        return isValidPlay(card, topDiscard());
+    }
+
+    public void endTurn() {
+        advanceTurn();
+    }
+
+    public boolean canPlayAnyCard(Player player) {
+        return player.getHand().stream().anyMatch(card -> isPlayable(card));
+    }
+
+    public boolean hasWinner() {
+        for (Player player : players) {
+            if (player.getHand().isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public Player getWinner() {
+        for (Player player : players) {
+            if (player.getHand().isEmpty()) {
+                return player;
+            }
+        }
+        return null;
+    }
+
+    public void resolvePendingDraw(Player player) {
+        for (int i = 0; i < pendingDraw; i++) {
+            ensureDrawPileHasCards();
+            player.addToHand(deck.remove(0));
+        }
+        pendingDraw = 0;
+        pendingDrawType = null;
+    }
+
+    // turn flow
+    public void takeTurn(Player player, Card cardToPlay, Color chosenColor) {
+        requireCurrentPlayer(player);
+
+        // handle pending draw
+        if (pendingDraw > 0) {
+            if (cardToPlay != null && isValidPlay(cardToPlay, topDiscard())) {
+                playCard(player, cardToPlay, chosenColor);
+            } else {
+                resolvePendingDraw(player);
+                advanceTurn();
+            }
+            return;
+        }
+
+        if (cardToPlay != null) {
+            playCard(player, cardToPlay, chosenColor);
+        } else { // no valid cards, draw until player can play a card
+            Card drawn;
+            do {
+                drawn = drawCard(player);
+            } while (!isPlayable(drawn));
+            playCard(player, drawn, chosenColor); // autoplay the drawn card
+            advanceTurn();
+        }
+    }
+    
+    public void addPendingDraw(int count, DrawType type) {
+        pendingDraw += count;
+        pendingDrawType = type;
     }
 }
