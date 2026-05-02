@@ -1,0 +1,180 @@
+package com.kkhuu131.uno.model;
+
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
+
+public class GameState {
+    private static final int DEFAULT_HAND_SIZE = 7;
+    private static final int DEFAULT_PLAYER_COUNT = 2;
+
+    private final List<Card> deck = new LinkedList<>(); // draw pile
+    private final List<Card> discardPile = new LinkedList<>(); // played cards pile
+    private final List<Player> players = new LinkedList<>();
+    private boolean isClockwise = true; // true for clockwise, false for counterclockwise
+
+    private int currentPlayerIndex;
+    /** Color players must match when the visible top card is a wild. */
+    private Color activeColor;
+
+    public GameState() {
+        currentPlayerIndex = 0;
+    }
+
+    public List<Player> getPlayers() {
+        return Collections.unmodifiableList(players);
+    }
+
+    public List<Card> getDeck() {
+        return Collections.unmodifiableList(deck);
+    }
+
+    public List<Card> getDiscardPile() {
+        return Collections.unmodifiableList(discardPile);
+    }
+
+    public int getCurrentPlayerIndex() {
+        return currentPlayerIndex;
+    }
+
+    public Player getCurrentPlayer() {
+        return players.get(currentPlayerIndex);
+    }
+
+    public Color getActiveColor() {
+        return activeColor;
+    }
+
+    public void initializeGame() {
+        deck.clear();
+        discardPile.clear();
+        players.clear();
+        currentPlayerIndex = 0;
+
+        for (Color color : Color.values()) {
+            deck.add(new NumberCard(color, 0));
+            for (int i = 1; i <= 9; i++) {
+                deck.add(new NumberCard(color, i));
+                deck.add(new NumberCard(color, i));
+            }
+            for (int i = 0; i < 2; i++) {
+                deck.add(new ActionCard(color, ActionType.DRAW_TWO));
+                deck.add(new ActionCard(color, ActionType.SKIP));
+                deck.add(new ActionCard(color, ActionType.REVERSE));
+            }
+        }
+
+        for (int i = 0; i < 4; i++) {
+            deck.add(new WildCard(WildType.WILD));
+            deck.add(new WildCard(WildType.WILD_DRAW_FOUR));
+        }
+
+        Collections.shuffle(deck);
+
+        for (int i = 0; i < DEFAULT_PLAYER_COUNT; i++) {
+            players.add(new Player("Player " + (i + 1)));
+            Player p = players.get(i);
+            for (int j = 0; j < DEFAULT_HAND_SIZE; j++) {
+                p.addToHand(deck.remove(0));
+            }
+        }
+
+        placeStarterCard();
+    }
+
+    private void placeStarterCard() {
+        Card starter = deck.remove(0);
+        discardPile.add(starter);
+        if (starter instanceof WildCard) {
+            // House rule until we implement "dealer chooses color" for an opening wild.
+            activeColor = Color.RED;
+        } else {
+            activeColor = starter.getColor();
+        }
+    }
+
+    /**
+     * Draw one card from the deck into the player's hand. Does not advance turn.
+     */
+    public Card drawCard(Player player) {
+        requireCurrentPlayer(player);
+        ensureDrawPileHasCards();
+        Card drawn = deck.remove(0);
+        player.addToHand(drawn);
+        return drawn;
+    }
+
+    public void playCard(Player player, Card card) {
+        if (card instanceof WildCard) {
+            throw new IllegalArgumentException("Wild cards require a chosen color; use playCard(player, card, color)");
+        }
+        playCardInternal(player, card, null);
+    }
+
+    public void playCard(Player player, Card card, Color chosenColor) {
+        Objects.requireNonNull(chosenColor, "chosenColor");
+        if (!(card instanceof WildCard)) {
+            throw new IllegalArgumentException("chosenColor is only valid when playing a wild card");
+        }
+        playCardInternal(player, card, chosenColor);
+    }
+
+    private void playCardInternal(Player player, Card card, Color wildChoice) {
+        requireCurrentPlayer(player);
+        Objects.requireNonNull(card, "card");
+
+        if (!player.holdsCard(card)) {
+            throw new IllegalArgumentException("Card not in player's hand");
+        }
+
+        if (!discardPile.isEmpty() && !isValidPlay(card, topDiscard())) {
+            throw new IllegalArgumentException("Invalid card play");
+        }
+
+        if (!player.removeFromHand(card)) {
+            throw new IllegalStateException("Failed to remove card after presence check");
+        }
+        discardPile.add(card);
+
+        if (card instanceof WildCard) {
+            activeColor = wildChoice;
+        } else {
+            activeColor = card.getColor();
+        }
+
+        currentPlayerIndex = isClockwise ? (currentPlayerIndex + 1) % players.size() : (currentPlayerIndex - 1 + players.size()) % players.size(); // wrap around, direction of play
+    }
+
+    private void requireCurrentPlayer(Player player) {
+        if (players.indexOf(player) != currentPlayerIndex) {
+            throw new IllegalArgumentException("Player is not the current player");
+        }
+    }
+
+    private Card topDiscard() {
+        return discardPile.get(discardPile.size() - 1);
+    }
+
+    private boolean isValidPlay(Card played, Card topCard) {
+        return played.canBePlayedOn(topCard, activeColor);
+    }
+
+    /**
+     * When the deck is empty, move all cards from the discard pile into the deck except the top
+     * (face-up) card, then shuffle. Standard Uno recycling behavior.
+     */
+    private void ensureDrawPileHasCards() {
+        if (!deck.isEmpty()) {
+            return;
+        }
+        if (discardPile.size() <= 1) {
+            throw new IllegalStateException("Cannot draw: deck is empty and there are no cards to recycle");
+        }
+        Card top = discardPile.remove(discardPile.size() - 1);
+        deck.addAll(discardPile);
+        discardPile.clear();
+        discardPile.add(top);
+        Collections.shuffle(deck);
+    }
+}
