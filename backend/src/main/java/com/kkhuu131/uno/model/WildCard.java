@@ -20,6 +20,17 @@ public final class WildCard extends Card {
     }
 
     @Override
+    public void applyEffect(GameState gameState) {
+        switch (type) {
+            case WILD:
+                // No effect, color already set in GameState
+                break;
+            case WILD_DRAW_FOUR:
+                gameState.drawCardsForNextPlayer(4);
+        }
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;

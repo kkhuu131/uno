@@ -19,6 +19,12 @@ public abstract class Card {
      */
     public abstract boolean canBePlayedOn(Card topCard, Color activeColor);
 
+    /**
+     * Applies the effect of the card to the game state.
+     * @param gameState the game state
+     */
+    public abstract void applyEffect(GameState gameState);
+
     @Override
     public abstract boolean equals(Object o);
 

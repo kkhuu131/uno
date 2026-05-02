@@ -22,6 +22,11 @@ public final class NumberCard extends Card {
     }
 
     @Override
+    public void applyEffect(GameState gameState) {
+        // No effect
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;

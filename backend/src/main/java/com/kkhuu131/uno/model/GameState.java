@@ -143,11 +143,15 @@ public class GameState {
             activeColor = card.getColor();
         }
 
+        advanceTurn();
+    }
+
+    private void advanceTurn() {
         currentPlayerIndex = isClockwise ? (currentPlayerIndex + 1) % players.size() : (currentPlayerIndex - 1 + players.size()) % players.size(); // wrap around, direction of play
     }
 
     private void requireCurrentPlayer(Player player) {
-        if (players.indexOf(player) != currentPlayerIndex) {
+        if (player != getCurrentPlayer()) {
             throw new IllegalArgumentException("Player is not the current player");
         }
     }
@@ -176,5 +180,23 @@ public class GameState {
         discardPile.clear();
         discardPile.add(top);
         Collections.shuffle(deck);
+    }
+
+    private Player getNextPlayer() {
+        return players.get(isClockwise ? (currentPlayerIndex + 1) % players.size() : (currentPlayerIndex - 1 + players.size()) % players.size());
+    }
+
+    public void drawCardsForNextPlayer(int count) {
+        for (int i = 0; i < count; i++) {
+            drawCard(getNextPlayer());
+        }
+    }
+
+    public void skipTurn() {
+        advanceTurn();
+    }
+
+    public void reverseDirection() {
+        isClockwise = !isClockwise;
     }
 }

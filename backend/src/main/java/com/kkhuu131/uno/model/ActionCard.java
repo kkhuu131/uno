@@ -22,6 +22,21 @@ public final class ActionCard extends Card {
     }
 
     @Override
+    public void applyEffect(GameState gameState) {
+        switch (action) {
+            case DRAW_TWO:
+                gameState.drawCardsForNextPlayer(2);
+                break;
+            case SKIP:
+                gameState.skipTurn();
+                break;
+            case REVERSE:
+                gameState.reverseDirection();
+                break;
+        }
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
