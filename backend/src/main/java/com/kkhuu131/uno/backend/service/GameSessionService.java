@@ -1,0 +1,120 @@
+package com.kkhuu131.uno.backend.service;
+
+import com.kkhuu131.uno.backend.exception.GameAlreadyFinishedException;
+import com.kkhuu131.uno.backend.web.dto.DrawCardRequest;
+import com.kkhuu131.uno.backend.web.dto.PlayCardRequest;
+import com.kkhuu131.uno.model.Card;
+import com.kkhuu131.uno.model.Color;
+import com.kkhuu131.uno.model.GameState;
+import com.kkhuu131.uno.model.Player;
+import com.kkhuu131.uno.model.WildCard;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.stereotype.Service;
+
+/**
+ * Holds active games in memory. Spring creates one instance and injects it into your controller.
+ * <p>
+ * {@link Service} = “this class does application logic” (not HTTP). Same idea as putting logic in a
+ * plain Java class, plus Spring knows to register it as a singleton bean.
+ */
+@Service
+public class GameSessionService {
+
+	private final Map<String, GameState> games = new ConcurrentHashMap<>();
+
+	/**
+	 * Creates a new game, runs your domain rules ({@link GameState#initializeGame()}), and stores it.
+	 *
+	 * @return the id clients use in URLs such as {@code GET /api/games/{gameId}}
+	 */
+	public String createGame() {
+		String id = UUID.randomUUID().toString();
+		GameState state = new GameState();
+		state.initializeGame();
+		games.put(id, state);
+		return id;
+	}
+
+	public Optional<GameState> findGame(String gameId) {
+		return Optional.ofNullable(games.get(gameId));
+	}
+
+	/**
+	 * Plays one card from {@code playerIndex}'s hand at {@code handIndex}. Mutates the stored {@link GameState}.
+	 *
+	 * @return empty if {@code gameId} is not found
+	 * @throws GameAlreadyFinishedException if {@link GameState#hasWinner()} is already true
+	 * @throws IllegalArgumentException rule violations, wrong player, bad indices, missing color for wild, etc.
+	 */
+	public Optional<GameState> playCard(String gameId, PlayCardRequest request) {
+		GameState state = games.get(gameId);
+		if (state == null) {
+			return Optional.empty();
+		}
+		requireInProgress(state);
+		List<Player> players = state.getPlayers();
+		if (request.playerIndex() < 0 || request.playerIndex() >= players.size()) {
+			throw new IllegalArgumentException("playerIndex out of range");
+		}
+		Player player = players.get(request.playerIndex());
+		List<Card> hand = player.getHand();
+		if (request.handIndex() < 0 || request.handIndex() >= hand.size()) {
+			throw new IllegalArgumentException("handIndex out of range");
+		}
+		Card card = hand.get(request.handIndex());
+		if (card instanceof WildCard wc) {
+			Color chosen = parseChosenColor(request.chosenColor());
+			state.playCard(player, wc, chosen);
+		} else {
+			if (request.chosenColor() != null && !request.chosenColor().isBlank()) {
+				throw new IllegalArgumentException("chosenColor is only used when playing a wild card");
+			}
+			state.playCard(player, card);
+		}
+		return Optional.of(state);
+	}
+
+	/**
+	 * Draws one card from the deck for {@code playerIndex}. Only the current player may draw (enforced by
+	 * {@link GameState#drawCard(Player)}).
+	 *
+	 * @return empty if {@code gameId} is not found
+	 * @throws GameAlreadyFinishedException if {@link GameState#hasWinner()} is already true
+	 * @throws IllegalArgumentException wrong player, bad index, empty deck with nothing to recycle, etc.
+	 */
+	public Optional<DrawCardOutcome> drawCard(String gameId, DrawCardRequest request) {
+		GameState state = games.get(gameId);
+		if (state == null) {
+			return Optional.empty();
+		}
+		requireInProgress(state);
+		List<Player> players = state.getPlayers();
+		if (request.playerIndex() < 0 || request.playerIndex() >= players.size()) {
+			throw new IllegalArgumentException("playerIndex out of range");
+		}
+		Player player = players.get(request.playerIndex());
+		Card drawn = state.drawCard(player);
+		return Optional.of(new DrawCardOutcome(drawn, state));
+	}
+
+	private static void requireInProgress(GameState state) {
+		if (state.hasWinner()) {
+			throw new GameAlreadyFinishedException();
+		}
+	}
+
+	private static Color parseChosenColor(String raw) {
+		if (raw == null || raw.isBlank()) {
+			throw new IllegalArgumentException("Wild cards require chosenColor (RED, GREEN, BLUE, or YELLOW)");
+		}
+		try {
+			return Color.valueOf(raw.trim().toUpperCase());
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException("Invalid chosenColor: use RED, GREEN, BLUE, or YELLOW");
+		}
+	}
+}
