@@ -37,6 +37,14 @@ class GameStateNPlayersTest {
         GameState state = new GameState();
         List<String> names = List.of("P1","P2","P3","P4","P5","P6","P7","P8","P9","P10","P11");
         assertThatThrownBy(() -> state.initializeGame(names))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("2–10");
+    }
+
+    @Test
+    void initializeGame_withNullList_throws() {
+        GameState state = new GameState();
+        assertThatThrownBy(() -> state.initializeGame(null))
             .isInstanceOf(IllegalArgumentException.class);
     }
 }

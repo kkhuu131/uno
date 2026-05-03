@@ -7,7 +7,6 @@ import java.util.Objects;
 
 public class GameState {
     private static final int DEFAULT_HAND_SIZE = 7;
-    private static final int DEFAULT_PLAYER_COUNT = 2;
 
     private final List<Card> deck = new LinkedList<>(); // draw pile
     private final List<Card> discardPile = new LinkedList<>(); // played cards pile
@@ -52,6 +51,9 @@ public class GameState {
     public void initializeGame(List<String> playerNames) {
         if (playerNames == null || playerNames.size() < 2 || playerNames.size() > 10) {
             throw new IllegalArgumentException("Game requires 2–10 players");
+        }
+        if (playerNames.stream().anyMatch(n -> n == null || n.isBlank())) {
+            throw new IllegalArgumentException("Player names must not be null or blank");
         }
         deck.clear();
         discardPile.clear();
