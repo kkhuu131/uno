@@ -49,11 +49,17 @@ public class GameState {
         return activeColor;
     }
 
-    public void initializeGame() {
+    public void initializeGame(List<String> playerNames) {
+        if (playerNames == null || playerNames.size() < 2 || playerNames.size() > 10) {
+            throw new IllegalArgumentException("Game requires 2–10 players");
+        }
         deck.clear();
         discardPile.clear();
         players.clear();
         currentPlayerIndex = 0;
+        isClockwise = true;
+        pendingDraw = 0;
+        pendingDrawType = null;
 
         for (Color color : Color.values()) {
             deck.add(new NumberCard(color, 0));
@@ -67,23 +73,24 @@ public class GameState {
                 deck.add(new ActionCard(color, ActionType.REVERSE));
             }
         }
-
         for (int i = 0; i < 4; i++) {
             deck.add(new WildCard(WildType.WILD));
             deck.add(new WildCard(WildType.WILD_DRAW_FOUR));
         }
-
         Collections.shuffle(deck);
 
-        for (int i = 0; i < DEFAULT_PLAYER_COUNT; i++) {
-            players.add(new Player("Player " + (i + 1)));
-            Player p = players.get(i);
+        for (String name : playerNames) {
+            Player p = new Player(name);
             for (int j = 0; j < DEFAULT_HAND_SIZE; j++) {
                 p.addToHand(deck.remove(0));
             }
+            players.add(p);
         }
-
         placeStarterCard();
+    }
+
+    public void initializeGame() {
+        initializeGame(List.of("Player 1", "Player 2"));
     }
 
     private void placeStarterCard() {
