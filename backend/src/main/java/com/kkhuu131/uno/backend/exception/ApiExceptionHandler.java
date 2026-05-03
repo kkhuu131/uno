@@ -34,4 +34,19 @@ public class ApiExceptionHandler {
 	public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
 		return ResponseEntity.badRequest().body(new ErrorResponse(ex.getMessage()));
 	}
+
+	@ExceptionHandler(LobbyNotFoundException.class)
+	public ResponseEntity<ErrorResponse> handleLobbyNotFound(LobbyNotFoundException ex) {
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(ex.getMessage()));
+	}
+
+	@ExceptionHandler({LobbyFullException.class, LobbyAlreadyStartedException.class})
+	public ResponseEntity<ErrorResponse> handleLobbyConflict(RuntimeException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(ex.getMessage()));
+	}
+
+	@ExceptionHandler(ForbiddenActionException.class)
+	public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenActionException ex) {
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(ex.getMessage()));
+	}
 }
