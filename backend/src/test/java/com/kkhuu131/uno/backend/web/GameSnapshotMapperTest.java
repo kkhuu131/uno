@@ -35,6 +35,7 @@ class GameSnapshotMapperTest {
 		when(state.getActiveColor()).thenReturn(Color.RED);
 		NumberCard top = new NumberCard(Color.BLUE, 8);
 		when(state.getDiscardPile()).thenReturn(new ArrayList<>(List.of(top)));
+		when(state.hasPendingDrawStack()).thenReturn(false);
 
 		var snap = mapper.toSnapshot("game-1", state);
 

@@ -99,13 +99,36 @@ public class GameState {
 
     /**
      * Draw one card from the deck into the player's hand. Does not advance turn.
+     * When a +2/+4 stack is pending for the current player, they must stack or {@link #passTurn(Player)} instead.
      */
     public Card drawCard(Player player) {
         requireCurrentPlayer(player);
+        if (pendingDraw > 0) {
+            throw new IllegalStateException(
+                    "Play a stacking card or pass to take the stacked draw — you cannot draw from the deck now");
+        }
         ensureDrawPileHasCards();
         Card drawn = deck.remove(0);
         player.addToHand(drawn);
         return drawn;
+    }
+
+    /**
+     * True when the current player must resolve a stacked draw (play another +2/+4 or take the cards).
+     */
+    public boolean hasPendingDrawStack() {
+        return pendingDraw > 0;
+    }
+
+    /**
+     * Pass without playing: if a draw stack is pending, take those cards; then advance to the next player.
+     */
+    public void passTurn(Player player) {
+        requireCurrentPlayer(player);
+        if (pendingDraw > 0) {
+            resolvePendingDraw(player);
+        }
+        endTurn();
     }
 
     public void playCard(Player player, Card card) {
@@ -147,6 +170,9 @@ public class GameState {
         }
 
         card.applyEffect(this);
+        if (!hasWinner()) {
+            endTurn();
+        }
     }
 
     private void advanceTurn() {

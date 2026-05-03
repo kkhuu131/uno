@@ -1,14 +1,15 @@
 package com.kkhuu131.uno.backend.web;
 
 import com.kkhuu131.uno.backend.service.GameSessionService;
-import com.kkhuu131.uno.backend.web.dto.ErrorResponse;
 import com.kkhuu131.uno.backend.web.dto.GameCreatedResponse;
 import com.kkhuu131.uno.backend.web.dto.DrawCardRequest;
 import com.kkhuu131.uno.backend.web.dto.DrawCardResponse;
 import com.kkhuu131.uno.backend.web.dto.GameSnapshotResponse;
+import com.kkhuu131.uno.backend.web.dto.PassTurnRequest;
 import com.kkhuu131.uno.backend.web.dto.PlayCardRequest;
 import com.kkhuu131.uno.backend.web.dto.CardView;
 import com.kkhuu131.uno.model.GameState;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -77,39 +78,42 @@ public class GameController {
 	}
 
 	/**
-	 * Draw one card from the deck into the given player's hand. Does not end the turn (same as {@link
-	 * com.kkhuu131.uno.model.GameState#drawCard}; your UI can chain draw then play in separate requests).
+	 * Draw one card from the deck. Set {@code endTurn} to true to advance the turn after drawing (e.g. draw and
+	 * pass). While a +2/+4 stack is pending, use {@link #passTurn} instead of drawing from the deck.
 	 */
 	@PostMapping("/games/{gameId}/draw")
-	public ResponseEntity<?> drawCard(@PathVariable String gameId, @RequestBody DrawCardRequest body) {
-		try {
-			return gameSessionService
-					.drawCard(gameId, body)
-					.<ResponseEntity<?>>map(
-							outcome ->
-									ResponseEntity.ok(
-											new DrawCardResponse(
-													CardView.from(outcome.drawnCard()),
-													snapshotMapper.toSnapshot(gameId, outcome.state()))))
-					.orElse(ResponseEntity.notFound().build());
-		} catch (IllegalArgumentException | IllegalStateException e) {
-			return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
-		}
+	public ResponseEntity<?> drawCard(@PathVariable String gameId, @Valid @RequestBody DrawCardRequest body) {
+		return gameSessionService
+				.drawCard(gameId, body)
+				.<ResponseEntity<?>>map(
+						outcome ->
+								ResponseEntity.ok(
+										new DrawCardResponse(
+												CardView.from(outcome.drawnCard()),
+												snapshotMapper.toSnapshot(gameId, outcome.state()))))
+				.orElse(ResponseEntity.notFound().build());
+	}
+
+	/**
+	 * Pass the turn: if a draw stack is pending, take those cards; otherwise just advance. Use after drawing (without
+	 * playing) when {@code endTurn} on draw is not used, or to accept a +2/+4 stack.
+	 */
+	@PostMapping("/games/{gameId}/pass")
+	public ResponseEntity<?> passTurn(@PathVariable String gameId, @Valid @RequestBody PassTurnRequest body) {
+		return gameSessionService
+				.passTurn(gameId, body)
+				.<ResponseEntity<?>>map(state -> ResponseEntity.ok(snapshotMapper.toSnapshot(gameId, state)))
+				.orElse(ResponseEntity.notFound().build());
 	}
 
 	/**
 	 * Play a card from a player's hand. On success, returns the same fields as {@link #getGame(String)}.
-	 * On rule violations, HTTP 400 with {@link ErrorResponse}.
 	 */
 	@PostMapping("/games/{gameId}/play")
-	public ResponseEntity<?> playCard(@PathVariable String gameId, @RequestBody PlayCardRequest body) {
-		try {
-			return gameSessionService
-					.playCard(gameId, body)
-					.<ResponseEntity<?>>map(state -> ResponseEntity.ok(snapshotMapper.toSnapshot(gameId, state)))
-					.orElse(ResponseEntity.notFound().build());
-		} catch (IllegalArgumentException e) {
-			return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
-		}
+	public ResponseEntity<?> playCard(@PathVariable String gameId, @Valid @RequestBody PlayCardRequest body) {
+		return gameSessionService
+				.playCard(gameId, body)
+				.<ResponseEntity<?>>map(state -> ResponseEntity.ok(snapshotMapper.toSnapshot(gameId, state)))
+				.orElse(ResponseEntity.notFound().build());
 	}
 }

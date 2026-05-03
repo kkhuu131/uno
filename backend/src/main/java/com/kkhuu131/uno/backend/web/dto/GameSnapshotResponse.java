@@ -11,6 +11,9 @@ import java.util.List;
  *
  * <p>{@link #status()} is {@code IN_PROGRESS} until someone has an empty hand, then {@code FINISHED}. When finished,
  * {@link #winnerPlayerIndex()} and {@link #winnerName()} identify the winner (same order as {@link #players()}).
+ *
+ * <p>{@link #pendingDrawStack()} is true when the current player must stack +2/+4 or call {@code POST .../pass} (cannot
+ * draw from the deck until resolved).
  */
 public record GameSnapshotResponse(
 		String gameId,
@@ -20,5 +23,6 @@ public record GameSnapshotResponse(
 		CardView topDiscard,
 		String status,
 		Integer winnerPlayerIndex,
-		String winnerName
+		String winnerName,
+		boolean pendingDrawStack
 ) {}

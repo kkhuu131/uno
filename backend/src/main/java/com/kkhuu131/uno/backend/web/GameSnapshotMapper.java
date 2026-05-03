@@ -55,7 +55,8 @@ public class GameSnapshotMapper {
 				top,
 				status,
 				winnerPlayerIndex,
-				winnerName
+				winnerName,
+				state.hasPendingDrawStack()
 		);
 	}
 }

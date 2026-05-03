@@ -62,7 +62,8 @@ class GameControllerTest {
 				.andExpect(jsonPath("$.topDiscard.kind").exists())
 				.andExpect(jsonPath("$.status").value("IN_PROGRESS"))
 				.andExpect(jsonPath("$.winnerPlayerIndex").value(nullValue()))
-				.andExpect(jsonPath("$.winnerName").value(nullValue()));
+				.andExpect(jsonPath("$.winnerName").value(nullValue()))
+				.andExpect(jsonPath("$.pendingDrawStack").value(false));
 	}
 
 	@Test
@@ -102,5 +103,18 @@ class GameControllerTest {
 										"""))
 				.andExpect(status().isConflict())
 				.andExpect(jsonPath("$.message").value("Game already finished"));
+	}
+
+	@Test
+	void play_invalidBody_negativeIndex_returns400() throws Exception {
+		mockMvc.perform(
+						post("/api/games/g1/play")
+								.contentType(MediaType.APPLICATION_JSON)
+								.content(
+										"""
+										{"playerIndex":-1,"handIndex":0,"chosenColor":null}
+										"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").exists());
 	}
 }

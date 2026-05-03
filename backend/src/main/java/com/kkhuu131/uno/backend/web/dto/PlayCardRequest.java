@@ -1,5 +1,7 @@
 package com.kkhuu131.uno.backend.web.dto;
 
+import jakarta.validation.constraints.Min;
+
 /**
  * Body for {@code POST /api/games/{gameId}/play}.
  *
@@ -7,4 +9,4 @@ package com.kkhuu131.uno.backend.web.dto;
  * card in that player's {@link PlayerStateView#hand()} list (0-based). For wild / wild +4, set {@code chosenColor}
  * to {@code RED}, {@code GREEN}, {@code BLUE}, or {@code YELLOW}.
  */
-public record PlayCardRequest(int playerIndex, int handIndex, String chosenColor) {}
+public record PlayCardRequest(@Min(0) int playerIndex, @Min(0) int handIndex, String chosenColor) {}

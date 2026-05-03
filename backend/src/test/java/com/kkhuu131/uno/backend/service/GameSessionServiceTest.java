@@ -43,7 +43,7 @@ class GameSessionServiceTest {
 
 		TestGames.register(gameSessionService, "done-draw", finished);
 
-		assertThatThrownBy(() -> gameSessionService.drawCard("done-draw", new DrawCardRequest(0)))
+		assertThatThrownBy(() -> gameSessionService.drawCard("done-draw", new DrawCardRequest(0, false)))
 				.isInstanceOf(GameAlreadyFinishedException.class);
 
 		verify(finished).hasWinner();

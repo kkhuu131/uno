@@ -2,6 +2,7 @@ package com.kkhuu131.uno.backend.service;
 
 import com.kkhuu131.uno.backend.exception.GameAlreadyFinishedException;
 import com.kkhuu131.uno.backend.web.dto.DrawCardRequest;
+import com.kkhuu131.uno.backend.web.dto.PassTurnRequest;
 import com.kkhuu131.uno.backend.web.dto.PlayCardRequest;
 import com.kkhuu131.uno.model.Card;
 import com.kkhuu131.uno.model.Color;
@@ -98,7 +99,35 @@ public class GameSessionService {
 		}
 		Player player = players.get(request.playerIndex());
 		Card drawn = state.drawCard(player);
+		if (Boolean.TRUE.equals(request.endTurn())) {
+			if (state.hasPendingDrawStack()) {
+				throw new IllegalStateException(
+						"Cannot end turn after draw while a draw stack is pending; use POST /api/games/{id}/pass");
+			}
+			state.endTurn();
+		}
 		return Optional.of(new DrawCardOutcome(drawn, state));
+	}
+
+	/**
+	 * Pass the turn (after an optional draw, or to take a stacked +2/+4). Mutates {@link GameState}.
+	 *
+	 * @return empty if {@code gameId} is not found
+	 * @throws GameAlreadyFinishedException if {@link GameState#hasWinner()} is already true
+	 */
+	public Optional<GameState> passTurn(String gameId, PassTurnRequest request) {
+		GameState state = games.get(gameId);
+		if (state == null) {
+			return Optional.empty();
+		}
+		requireInProgress(state);
+		List<Player> players = state.getPlayers();
+		if (request.playerIndex() < 0 || request.playerIndex() >= players.size()) {
+			throw new IllegalArgumentException("playerIndex out of range");
+		}
+		Player player = players.get(request.playerIndex());
+		state.passTurn(player);
+		return Optional.of(state);
 	}
 
 	private static void requireInProgress(GameState state) {
