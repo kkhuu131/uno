@@ -20,9 +20,9 @@ public class LobbyState {
 
     public String getHostSessionId() { return hostSessionId; }
 
-    public LobbyStatus getStatus() { return status; }
+    public synchronized LobbyStatus getStatus() { return status; }
 
-    public String getGameId() { return gameId; }
+    public synchronized String getGameId() { return gameId; }
 
     public synchronized List<LobbyPlayer> getPlayers() {
         return List.copyOf(players);
