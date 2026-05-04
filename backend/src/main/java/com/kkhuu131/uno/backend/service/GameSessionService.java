@@ -131,14 +131,20 @@ public class GameSessionService {
 		}
 		Player player = players.get(request.playerIndex());
 		Card drawn = state.drawCard(player);
+		boolean mustDrawAgain = state.isForcedDrawActive() && !state.isPlayable(drawn);
+		boolean deckReshuffled = state.wasLastDrawReshuffle();
 		if (Boolean.TRUE.equals(request.endTurn())) {
+			if (mustDrawAgain) {
+				throw new IllegalStateException(
+						"You must keep drawing until you find a playable card");
+			}
 			if (state.hasPendingDrawStack()) {
 				throw new IllegalStateException(
 						"Cannot end turn after draw while a draw stack is pending; use POST /api/games/{id}/pass");
 			}
 			state.endTurn();
 		}
-		return Optional.of(new DrawCardOutcome(drawn, state));
+		return Optional.of(new DrawCardOutcome(drawn, state, mustDrawAgain, deckReshuffled));
 	}
 
 	/**

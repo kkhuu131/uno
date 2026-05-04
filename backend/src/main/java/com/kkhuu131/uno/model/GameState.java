@@ -20,6 +20,13 @@ public class GameState {
     private int pendingDraw = 0;
     private DrawType pendingDrawType = null;
 
+    /** True once the current player started their turn with no playable cards and must draw until finding one. */
+    private boolean forcedDrawActive = false;
+    /** True once the player in forced-draw mode has drawn a card they can legally play. */
+    private boolean forcedDrawDone = false;
+    /** True when the most recent drawCard call triggered a discard-pile reshuffle. */
+    private boolean lastDrawTriggeredReshuffle = false;
+
     public GameState() {
         currentPlayerIndex = 0;
     }
@@ -62,6 +69,9 @@ public class GameState {
         isClockwise = true;
         pendingDraw = 0;
         pendingDrawType = null;
+        forcedDrawActive = false;
+        forcedDrawDone = false;
+        lastDrawTriggeredReshuffle = false;
 
         for (Color color : Color.values()) {
             deck.add(new NumberCard(color, 0));
@@ -116,9 +126,16 @@ public class GameState {
             throw new IllegalStateException(
                     "Play a stacking card or pass to take the stacked draw — you cannot draw from the deck now");
         }
+        if (!forcedDrawActive && !canPlayAnyCard(player)) {
+            forcedDrawActive = true;
+            forcedDrawDone = false;
+        }
         ensureDrawPileHasCards();
         Card drawn = deck.remove(0);
         player.addToHand(drawn);
+        if (forcedDrawActive && !forcedDrawDone && isPlayable(drawn)) {
+            forcedDrawDone = true;
+        }
         return drawn;
     }
 
@@ -134,6 +151,10 @@ public class GameState {
      */
     public void passTurn(Player player) {
         requireCurrentPlayer(player);
+        if (forcedDrawActive && !forcedDrawDone) {
+            throw new IllegalStateException(
+                    "You must keep drawing until you find a playable card");
+        }
         if (pendingDraw > 0) {
             resolvePendingDraw(player);
         }
@@ -185,7 +206,10 @@ public class GameState {
     }
 
     private void advanceTurn() {
-        currentPlayerIndex = isClockwise ? (currentPlayerIndex + 1) % players.size() : (currentPlayerIndex - 1 + players.size()) % players.size(); // wrap around, direction of play
+        currentPlayerIndex = isClockwise ? (currentPlayerIndex + 1) % players.size() : (currentPlayerIndex - 1 + players.size()) % players.size();
+        forcedDrawActive = false;
+        forcedDrawDone = false;
+        lastDrawTriggeredReshuffle = false;
     }
 
     private void requireCurrentPlayer(Player player) {
@@ -219,6 +243,7 @@ public class GameState {
      */
     private void ensureDrawPileHasCards() {
         if (!deck.isEmpty()) {
+            lastDrawTriggeredReshuffle = false;
             return;
         }
         if (discardPile.size() <= 1) {
@@ -229,6 +254,7 @@ public class GameState {
         discardPile.clear();
         discardPile.add(top);
         Collections.shuffle(deck);
+        lastDrawTriggeredReshuffle = true;
     }
 
     private Player getNextPlayer() {
@@ -326,4 +352,8 @@ public class GameState {
         pendingDraw += count;
         pendingDrawType = type;
     }
+
+    public boolean isForcedDrawActive() { return forcedDrawActive; }
+    public boolean isForcedDrawDone()   { return forcedDrawDone; }
+    public boolean wasLastDrawReshuffle() { return lastDrawTriggeredReshuffle; }
 }

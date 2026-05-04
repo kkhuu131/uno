@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGame } from '../hooks/useGame'
-import type { CardColor, CardView } from '../types'
+import type { CardColor, CardView, GameSnapshot } from '../types'
 import { getDeckImageSrc } from '../utils/cardImage'
 import { ActionBar } from './ActionBar'
 import type { DiscardEntry } from './DiscardPile'
@@ -42,6 +42,28 @@ function slotPosition(slotIndex: number, totalPlayers: number): { left: string; 
 const CARD_W = 82
 const CARD_H = 116
 
+function isCardPlayable(
+  card: CardView,
+  topDiscard: GameSnapshot['topDiscard'],
+  activeColor: CardColor,
+  pendingDrawStack: boolean,
+): boolean {
+  if (pendingDrawStack) {
+    if (card.kind === 'ACTION' && card.action === 'DRAW_TWO') return true
+    if (card.kind === 'WILD' && card.wildType === 'WILD_DRAW_FOUR') return true
+    return false
+  }
+  if (card.kind === 'WILD') return true
+  if (card.color === activeColor) return true
+  if (card.kind === 'NUMBER' && card.number !== null && card.number === topDiscard?.number) return true
+  if (card.kind === 'ACTION' && card.action !== null && card.action === topDiscard?.action) return true
+  return false
+}
+
+function delay(ms: number) {
+  return new Promise<void>(resolve => setTimeout(resolve, ms))
+}
+
 interface Props {
   gameId: string
   localPlayerIndex: number
@@ -49,7 +71,7 @@ interface Props {
 
 export function GameTable({ gameId, localPlayerIndex }: Props) {
   const navigate = useNavigate()
-  const { snapshot, error, busy, clearError, playCard, drawCard, passTurn } = useGame(
+  const { snapshot, error, busy, clearError, playCard, passTurn, autoDrawLoopRef } = useGame(
     gameId,
     localPlayerIndex,
   )
@@ -65,6 +87,7 @@ export function GameTable({ gameId, localPlayerIndex }: Props) {
   const [pendingWild, setPendingWild] = useState<PendingWild | null>(null)
   const [hasDrawnThisTurn, setHasDrawnThisTurn] = useState(false)
   const [discardHistory, setDiscardHistory] = useState<DiscardEntry[]>([])
+  const [deckShuffling, setDeckShuffling] = useState(false)
   const discardCounterRef = useRef(0)
   const prevTopKeyRef = useRef<string | null>(null)
 
@@ -108,6 +131,14 @@ export function GameTable({ gameId, localPlayerIndex }: Props) {
   const isMyTurn = currentIdx === localPlayerIndex
   const localPlayer = players[localPlayerIndex]
 
+  const hasNoPlayableCards =
+    isMyTurn &&
+    !pendingDrawStack &&
+    !hasDrawnThisTurn &&
+    (localPlayer.hand ?? []).every(
+      card => !isCardPlayable(card, topDiscard, activeColor, pendingDrawStack),
+    )
+
   // Build render order: local player at slot 0, others clockwise
   const totalPlayers = players.length
   const renderOrder = Array.from({ length: totalPlayers }, (_, slot) =>
@@ -127,6 +158,7 @@ export function GameTable({ gameId, localPlayerIndex }: Props) {
     card: CardView,
     e: React.MouseEvent<HTMLButtonElement>,
   ) {
+    if (!isCardPlayable(card, topDiscard, activeColor, pendingDrawStack)) return
     if (card.kind === 'WILD') {
       setPendingWild({ playerIndex, handIndex, card })
       return
@@ -169,10 +201,11 @@ export function GameTable({ gameId, localPlayerIndex }: Props) {
     })
   }
 
-  async function handleDraw() {
-    const deckRect = deckRef.current?.getBoundingClientRect()
-    const handRect = localHandRef.current?.getBoundingClientRect()
-    if (deckRect && handRect) {
+  async function animateDrawFromDeck(): Promise<void> {
+    return new Promise(resolve => {
+      const deckRect = deckRef.current?.getBoundingClientRect()
+      const handRect = localHandRef.current?.getBoundingClientRect()
+      if (!deckRect || !handRect) { resolve(); return }
       const id = `draw-${Date.now()}`
       const toX = Math.min(handRect.right - CARD_W - 8, handRect.left + handRect.width * 0.7)
       const toY = handRect.top + (handRect.height - CARD_H) / 2
@@ -181,10 +214,22 @@ export function GameTable({ gameId, localPlayerIndex }: Props) {
         card: null,
         from: { x: deckRect.left, y: deckRect.top, w: deckRect.width, h: deckRect.height },
         to: { x: toX, y: toY, w: CARD_W, h: CARD_H },
-        onComplete: () => removeFlyingCard(id),
+        onComplete: () => { removeFlyingCard(id); resolve() },
       })
-    }
-    await drawCard(localPlayerIndex, false)
+    })
+  }
+
+  async function handleDraw() {
+    await autoDrawLoopRef.current(async (_card, reshuffled, stillDrawing) => {
+      if (reshuffled) {
+        setDeckShuffling(true)
+        await delay(750)
+        setDeckShuffling(false)
+        await delay(150)
+      }
+      await animateDrawFromDeck()
+      if (stillDrawing) await delay(180)
+    })
     setHasDrawnThisTurn(true)
   }
 
@@ -221,7 +266,7 @@ export function GameTable({ gameId, localPlayerIndex }: Props) {
         <div className="table-center__inner">
           <button
             ref={deckRef}
-            className="deck-pile"
+            className={`deck-pile${deckShuffling ? ' deck-pile--shuffling' : ''}`}
             onClick={isMyTurn ? handleDraw : undefined}
             disabled={!isMyTurn || busy || pendingDrawStack || hasDrawnThisTurn || status === 'FINISHED'}
             aria-label="Draw card from deck"
@@ -254,6 +299,7 @@ export function GameTable({ gameId, localPlayerIndex }: Props) {
             playerIndex={localPlayerIndex}
             pendingDrawStack={pendingDrawStack}
             hasDrawnThisTurn={hasDrawnThisTurn}
+            noPlayableCards={hasNoPlayableCards}
             busy={busy}
             onDraw={handleDraw}
             onPass={handlePass}

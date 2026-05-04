@@ -50,7 +50,8 @@ interface CardBackProps {
 
 export function CardBack({ index = 0, total = 1, style }: CardBackProps) {
   const spread = Math.min(total, 7)
-  const rotation = spread > 1 ? ((index - (spread - 1) / 2) * 9) : 0
+  const rotatePerCard = spread > 1 ? Math.min(6, 20 / (spread - 1)) : 0
+  const rotation = spread > 1 ? ((index - (spread - 1) / 2) * rotatePerCard) : 0
   const xOffset = spread > 1 ? ((index - (spread - 1) / 2) * 14) : 0
   return (
     <img

@@ -4,12 +4,13 @@ interface Props {
   playerIndex: number
   pendingDrawStack: boolean
   hasDrawnThisTurn: boolean
+  noPlayableCards: boolean
   busy: boolean
   onDraw: () => void
   onPass: () => void
 }
 
-export function ActionBar({ pendingDrawStack, hasDrawnThisTurn, busy, onDraw, onPass }: Props) {
+export function ActionBar({ pendingDrawStack, hasDrawnThisTurn, noPlayableCards, busy, onDraw, onPass }: Props) {
   const drawDisabled  = busy || pendingDrawStack || hasDrawnThisTurn
   const passDisabled  = busy || (!pendingDrawStack && !hasDrawnThisTurn)
 
@@ -23,6 +24,11 @@ export function ActionBar({ pendingDrawStack, hasDrawnThisTurn, busy, onDraw, on
       {pendingDrawStack && (
         <p className="action-bar__hint action-bar__hint--warn">
           ⚡ Stack a +2/+4 or <strong>Pass</strong> to take the penalty!
+        </p>
+      )}
+      {!pendingDrawStack && noPlayableCards && !hasDrawnThisTurn && (
+        <p className="action-bar__hint action-bar__hint--warn">
+          No playable cards — <strong>Draw</strong> until you find one!
         </p>
       )}
       {hasDrawnThisTurn && !pendingDrawStack && (

@@ -278,6 +278,15 @@ body {
 }
 .deck-pile:disabled { cursor: not-allowed; opacity: 0.4; }
 .deck-pile:focus-visible { outline: 3px solid var(--active-glow); outline-offset: 3px; }
+@keyframes deck-shuffle {
+  0%   { transform: translateX(0)   rotate(0deg); }
+  15%  { transform: translateX(-6px) rotate(-4deg); }
+  35%  { transform: translateX(6px)  rotate(4deg); }
+  55%  { transform: translateX(-4px) rotate(-2deg); }
+  75%  { transform: translateX(4px)  rotate(2deg); }
+  100% { transform: translateX(0)   rotate(0deg); }
+}
+.deck-pile--shuffling { animation: deck-shuffle 0.65s ease-in-out; }
 
 /* ─── Discard pile ───────────────────────────────────────────────────── */
 .discard-pile {
@@ -795,7 +804,7 @@ body {
   gap: 6px;
   pointer-events: none;
 }
-.opponent-slot__fan { position: relative; }
+.opponent-slot__fan { display: flex; align-items: flex-start; overflow: visible; }
 .card-back { border-radius: 6px; display: block; }
 .opponent-slot__name {
   font-size: 0.75rem;

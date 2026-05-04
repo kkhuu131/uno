@@ -74,6 +74,45 @@ export function useGame(gameId: string, localPlayerIndex: number) {
   const passTurn = (playerIndex: number) =>
     act(() => api.passTurn(gameId, playerIndex))
 
+  /**
+   * Auto-draw loop: keeps drawing one card at a time until the server says mustDrawAgain=false
+   * (i.e. a playable card was found, or it was a voluntary draw).
+   *
+   * onEachCard is called after every successful draw so the caller can run animations.
+   * It receives the drawn card, whether the deck reshuffled, and whether another draw is still needed.
+   * The loop waits for onEachCard to resolve before proceeding to the next draw.
+   */
+  const autoDrawLoop = useCallback(
+    async (
+      onEachCard: (card: CardView, reshuffled: boolean, stillDrawing: boolean) => Promise<void>,
+    ) => {
+      if (busy) return
+      setBusy(true)
+      setError(null)
+      try {
+        let keepDrawing = true
+        while (keepDrawing) {
+          const result = await api.drawCard(gameId, localPlayerIndex, false)
+          setPublicSnapshot(result.game)
+          if (result.game.players[localPlayerIndex].hand) {
+            setPrivateHand(result.game.players[localPlayerIndex].hand)
+          }
+          keepDrawing = result.mustDrawAgain
+          await onEachCard(result.drawnCard, result.deckReshuffled, keepDrawing)
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Something went wrong')
+      } finally {
+        setBusy(false)
+      }
+    },
+    [busy, localPlayerIndex, gameId],
+  )
+
+  // Ref so GameTable can call autoDrawLoop without capturing a stale closure
+  const autoDrawLoopRef = useRef(autoDrawLoop)
+  autoDrawLoopRef.current = autoDrawLoop
+
   return {
     snapshot,
     error,
@@ -82,5 +121,7 @@ export function useGame(gameId: string, localPlayerIndex: number) {
     playCard,
     drawCard,
     passTurn,
+    autoDrawLoop,
+    autoDrawLoopRef,
   }
 }

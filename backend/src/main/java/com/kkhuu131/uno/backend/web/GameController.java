@@ -87,7 +87,9 @@ public class GameController {
                             gameId, outcome.state(), gameSessionService.getSessionMap(gameId));
                     return ResponseEntity.ok(new DrawCardResponse(
                             CardView.from(outcome.drawnCard()),
-                            snapshotMapper.toSnapshot(gameId, outcome.state(), body.playerIndex())));
+                            snapshotMapper.toSnapshot(gameId, outcome.state(), body.playerIndex()),
+                            outcome.mustDrawAgain(),
+                            outcome.deckReshuffled()));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }

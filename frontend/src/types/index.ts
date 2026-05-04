@@ -34,6 +34,8 @@ export interface GameSnapshot {
 export interface DrawCardResponse {
   drawnCard: CardView
   game: GameSnapshot
+  mustDrawAgain: boolean
+  deckReshuffled: boolean
 }
 
 export interface PrivateHandUpdate {
