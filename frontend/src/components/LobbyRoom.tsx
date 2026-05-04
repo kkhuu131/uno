@@ -5,8 +5,6 @@ import { api } from '../api/client'
 import type { LobbySnapshot } from '../types'
 import { getSessionId } from '../utils/session'
 import { useStompClient } from '../hooks/useStompClient'
-import { UsernameBar } from './UsernameBar'
-
 export function LobbyRoom() {
   const { code } = useParams<{ code: string }>()
   const navigate = useNavigate()
@@ -75,8 +73,6 @@ export function LobbyRoom() {
 
   return (
     <div className="lobby">
-      <UsernameBar />
-
       <motion.div
         className="lobby__card"
         initial={{ opacity: 0, y: 20 }}

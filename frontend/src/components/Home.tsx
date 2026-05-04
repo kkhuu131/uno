@@ -3,21 +3,26 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { getDisplayName, setDisplayName } from '../utils/session'
-import { UsernameBar } from './UsernameBar'
 
 export function Home() {
   const navigate = useNavigate()
+  const [name, setName] = useState(getDisplayName)
   const [joinCode, setJoinCode] = useState('')
   const [loading, setLoading] = useState<'create' | 'join' | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  function saveName(value: string) {
+    setName(value)
+    setDisplayName(value)
+  }
+
   async function handleCreate() {
-    const name = getDisplayName()
-    if (!name) { setError('Set your name first'); return }
+    const trimmed = name.trim()
+    if (!trimmed) { setError('Enter your name first'); return }
     setLoading('create')
     setError(null)
     try {
-      const { code, playerIndex } = await api.createLobby(name)
+      const { code, playerIndex } = await api.createLobby(trimmed)
       sessionStorage.setItem('uno_player_index', String(playerIndex))
       navigate('/lobby/' + code)
     } catch (e) {
@@ -27,14 +32,14 @@ export function Home() {
   }
 
   async function handleJoin() {
-    const name = getDisplayName()
-    if (!name) { setError('Set your name first'); return }
+    const trimmed = name.trim()
+    if (!trimmed) { setError('Enter your name first'); return }
     const code = joinCode.trim().toUpperCase()
     if (!code) { setError('Enter a lobby code'); return }
     setLoading('join')
     setError(null)
     try {
-      const { playerIndex } = await api.joinLobby(code, name)
+      const { playerIndex } = await api.joinLobby(code, trimmed)
       sessionStorage.setItem('uno_player_index', String(playerIndex))
       navigate('/lobby/' + code)
     } catch (e) {
@@ -45,8 +50,6 @@ export function Home() {
 
   return (
     <div className="setup">
-      <UsernameBar onChange={() => setDisplayName(getDisplayName())} />
-
       <motion.div
         className="setup__card"
         initial={{ scale: 0.8, opacity: 0, y: 24 }}
@@ -61,6 +64,20 @@ export function Home() {
         >
           UNO
         </motion.div>
+
+        <div className="setup__name-row">
+          <label className="setup__name-label" htmlFor="player-name">Your name</label>
+          <input
+            id="player-name"
+            className="setup__name-input"
+            placeholder="e.g. Flamingo"
+            value={name}
+            maxLength={24}
+            autoFocus
+            onChange={(e) => saveName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleCreate() }}
+          />
+        </div>
 
         {error && (
           <motion.p className="setup__error" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -96,7 +113,7 @@ export function Home() {
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
           >
-            {loading === 'join' ? 'Joining…' : 'Join Game'}
+            {loading === 'join' ? 'Joining…' : 'Join →'}
           </motion.button>
         </div>
       </motion.div>
