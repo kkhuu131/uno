@@ -38,9 +38,9 @@ export function PlayerHand({
 }: Props) {
   const count = hand.length
   const gap = handGap(count)
-  // Scale arc rotation so the total fan spread never exceeds ~24°.
-  const rotatePerCard = count <= 1 ? 2.8 : Math.min(2.8, 24 / (count - 1))
-  const tiltPerCard   = (rotatePerCard / 2.8) * 2.4
+  // Cap the total fan spread at 12° (±6° at each edge) regardless of hand size.
+  const rotatePerCard = count <= 1 ? 2.5 : Math.min(2.5, 12 / (count - 1))
+  const tiltPerCard   = rotatePerCard * 0.7
 
   return (
     // Outer scroll wrapper: scrolls horizontally but does NOT create overflow-y clipping.
