@@ -207,11 +207,11 @@ export function GameTable({ gameId, onNewGame }: Props) {
           {p1Active && <span className="player-info__turn-pip" />}
           <span className="player-info__avatar player-info__avatar--p1">P1</span>
           <span className="player-info__name">{player1.name}</span>
-          <span className="player-info__count">{player1.hand.length} cards</span>
+          <span className="player-info__count">{(player1.hand ?? []).length} cards</span>
         </div>
 
         <PlayerHand
-          hand={player1.hand}
+          hand={player1.hand ?? []}
           playerIndex={1}
           isCurrentPlayer={p1Active}
           flipped
@@ -279,7 +279,7 @@ export function GameTable({ gameId, onNewGame }: Props) {
         )}
 
         <PlayerHand
-          hand={player0.hand}
+          hand={player0.hand ?? []}
           playerIndex={0}
           isCurrentPlayer={p0Active}
           onPlayCard={(hi, card, e) => handleCardClick(0, hi, card, e)}
@@ -292,7 +292,7 @@ export function GameTable({ gameId, onNewGame }: Props) {
           {p0Active && <span className="player-info__turn-pip" />}
           <span className="player-info__avatar player-info__avatar--p2">P2</span>
           <span className="player-info__name">{player0.name}</span>
-          <span className="player-info__count">{player0.hand.length} cards</span>
+          <span className="player-info__count">{(player0.hand ?? []).length} cards</span>
         </div>
       </div>
 

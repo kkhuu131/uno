@@ -1,10 +1,15 @@
-import type { DrawCardResponse, GameSnapshot } from '../types'
+import type { DrawCardResponse, GameSnapshot, LobbySnapshot } from '../types'
+import { getSessionId } from '../utils/session'
 
 const BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? 'http://localhost:8080/api'
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Session-Id': getSessionId(),
+      ...(options?.headers ?? {}),
+    },
     ...options,
   })
   if (!res.ok) {
@@ -21,6 +26,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  // ── Game (existing) ──────────────────────────────────────────────────
   createGame: () =>
     request<{ gameId: string }>('/games', { method: 'POST' }),
 
@@ -44,4 +50,23 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ playerIndex }),
     }),
+
+  // ── Lobby (new) ──────────────────────────────────────────────────────
+  createLobby: (displayName: string) =>
+    request<{ code: string; playerIndex: number; lobby: LobbySnapshot }>('/lobbies', {
+      method: 'POST',
+      body: JSON.stringify({ displayName }),
+    }),
+
+  joinLobby: (code: string, displayName: string) =>
+    request<{ playerIndex: number; lobby: LobbySnapshot }>(`/lobbies/${code}/join`, {
+      method: 'POST',
+      body: JSON.stringify({ displayName }),
+    }),
+
+  startGame: (code: string) =>
+    request<{ gameId: string }>(`/lobbies/${code}/start`, { method: 'POST' }),
+
+  getLobby: (code: string) =>
+    request<LobbySnapshot>(`/lobbies/${code}`),
 }

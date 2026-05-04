@@ -3,6 +3,7 @@ export type CardColor = 'RED' | 'GREEN' | 'BLUE' | 'YELLOW'
 export type ActionType = 'SKIP' | 'REVERSE' | 'DRAW_TWO'
 export type WildType = 'WILD' | 'WILD_DRAW_FOUR'
 export type GameStatus = 'IN_PROGRESS' | 'FINISHED'
+export type LobbyStatus = 'WAITING' | 'IN_PROGRESS'
 
 export interface CardView {
   kind: CardKind
@@ -14,7 +15,8 @@ export interface CardView {
 
 export interface PlayerStateView {
   name: string
-  hand: CardView[]
+  hand: CardView[] | null  // null = redacted (opponent); populated = local player
+  handSize: number
 }
 
 export interface GameSnapshot {
@@ -32,4 +34,23 @@ export interface GameSnapshot {
 export interface DrawCardResponse {
   drawnCard: CardView
   game: GameSnapshot
+}
+
+export interface PrivateHandUpdate {
+  gameId: string
+  playerIndex: number
+  hand: CardView[]
+}
+
+export interface LobbyPlayerView {
+  playerIndex: number
+  displayName: string
+}
+
+export interface LobbySnapshot {
+  code: string
+  hostPlayerIndex: number
+  players: LobbyPlayerView[]
+  status: LobbyStatus
+  gameId: string | null
 }
