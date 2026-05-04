@@ -63,8 +63,7 @@ public class LobbySessionService {
         if (lobby.getStatus() == LobbyStatus.IN_PROGRESS) {
             return lobby.getGameId();
         }
-        // TODO(Task 7): replace with gameSessionService.createGame(lobby.getPlayers())
-        String gameId = gameSessionService.createGame();
+        String gameId = gameSessionService.createGame(lobby.getPlayers());
         lobby.start(gameId);
         return gameId;
     }

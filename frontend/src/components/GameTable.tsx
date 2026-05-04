@@ -13,7 +13,6 @@ import { OpponentSlot } from './OpponentSlot'
 import { PlayerHand } from './PlayerHand'
 import { Toast } from './Toast'
 import { TurnBanner } from './TurnBanner'
-import { UsernameBar } from './UsernameBar'
 import { WildColorPicker } from './WildColorPicker'
 
 interface PendingWild {
@@ -196,7 +195,6 @@ export function GameTable({ gameId, localPlayerIndex }: Props) {
 
   return (
     <div className="table">
-      <UsernameBar />
       <TurnBanner visible={bannerVisible} name={bannerName} />
 
       {/* ── Circular opponent slots ── */}

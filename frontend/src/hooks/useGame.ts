@@ -38,7 +38,7 @@ export function useGame(gameId: string, localPlayerIndex: number) {
       ...publicSnapshot,
       players: publicSnapshot.players.map((p, i) =>
         i === localPlayerIndex
-          ? { ...p, hand: privateHand ?? [] }
+          ? { ...p, hand: privateHand ?? p.hand ?? [] }
           : { ...p, hand: p.hand ?? [] },
       ),
     }
