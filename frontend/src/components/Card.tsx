@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import type { CardView } from '../types'
-import { getCardImageSrc } from '../utils/cardImage'
+import { getCardImageSrc, getDeckImageSrc } from '../utils/cardImage'
 
 interface Props {
   card: CardView
@@ -39,6 +39,30 @@ export function Card({ card, onClick, disabled, dimmed, hidden, style, className
     >
       <img src={src} alt={cardLabel(card)} draggable={false} />
     </motion.button>
+  )
+}
+
+interface CardBackProps {
+  index?: number
+  total?: number
+  style?: React.CSSProperties
+}
+
+export function CardBack({ index = 0, total = 1, style }: CardBackProps) {
+  const spread = Math.min(total, 7)
+  const rotation = spread > 1 ? ((index - (spread - 1) / 2) * 9) : 0
+  const xOffset = spread > 1 ? ((index - (spread - 1) / 2) * 14) : 0
+  return (
+    <img
+      src={getDeckImageSrc()}
+      className="card-back"
+      alt="Card back"
+      draggable={false}
+      style={{
+        transform: `rotate(${rotation}deg) translateX(${xOffset}px)`,
+        ...style,
+      }}
+    />
   )
 }
 

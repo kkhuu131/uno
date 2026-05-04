@@ -8,6 +8,7 @@ import com.kkhuu131.uno.model.Card;
 import com.kkhuu131.uno.model.Color;
 import com.kkhuu131.uno.model.GameState;
 import com.kkhuu131.uno.model.Player;
+import com.kkhuu131.uno.model.LobbyPlayer;
 import com.kkhuu131.uno.model.WildCard;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 public class GameSessionService {
 
 	private final Map<String, GameState> games = new ConcurrentHashMap<>();
+	private final Map<String, Map<String, Integer>> sessionMaps = new ConcurrentHashMap<>();
 
 	/**
 	 * Creates a new game, runs your domain rules ({@link GameState#initializeGame()}), and stores it.
@@ -38,6 +40,36 @@ public class GameSessionService {
 		state.initializeGame();
 		games.put(id, state);
 		return id;
+	}
+
+	/**
+	 * Creates a game from a lobby's player list and records the sessionId↔playerIndex mapping
+	 * so mutation endpoints can validate callers.
+	 */
+	public String createGame(List<LobbyPlayer> lobbyPlayers) {
+		String id = UUID.randomUUID().toString();
+		GameState state = new GameState();
+		state.initializeGame(lobbyPlayers.stream().map(LobbyPlayer::displayName).toList());
+		games.put(id, state);
+
+		Map<String, Integer> sessionMap = new ConcurrentHashMap<>();
+		for (LobbyPlayer p : lobbyPlayers) {
+			sessionMap.put(p.sessionId(), p.playerIndex());
+		}
+		sessionMaps.put(id, sessionMap);
+		return id;
+	}
+
+	/** Returns the playerIndex for the given sessionId in this game, or empty if not found. */
+	public Optional<Integer> getPlayerIndex(String gameId, String sessionId) {
+		Map<String, Integer> map = sessionMaps.get(gameId);
+		if (map == null) return Optional.empty();
+		return Optional.ofNullable(map.get(sessionId));
+	}
+
+	/** Returns the full sessionId→playerIndex map (empty map if game has no session mappings). */
+	public Map<String, Integer> getSessionMap(String gameId) {
+		return sessionMaps.getOrDefault(gameId, Map.of());
 	}
 
 	public Optional<GameState> findGame(String gameId) {

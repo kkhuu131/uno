@@ -1,119 +1,138 @@
 package com.kkhuu131.uno.backend.web;
 
+import com.kkhuu131.uno.backend.exception.ForbiddenActionException;
+import com.kkhuu131.uno.backend.service.GameBroadcastService;
 import com.kkhuu131.uno.backend.service.GameSessionService;
-import com.kkhuu131.uno.backend.web.dto.GameCreatedResponse;
+import com.kkhuu131.uno.backend.web.dto.CardView;
 import com.kkhuu131.uno.backend.web.dto.DrawCardRequest;
 import com.kkhuu131.uno.backend.web.dto.DrawCardResponse;
+import com.kkhuu131.uno.backend.web.dto.GameCreatedResponse;
 import com.kkhuu131.uno.backend.web.dto.GameSnapshotResponse;
 import com.kkhuu131.uno.backend.web.dto.PassTurnRequest;
 import com.kkhuu131.uno.backend.web.dto.PlayCardRequest;
-import com.kkhuu131.uno.backend.web.dto.CardView;
 import com.kkhuu131.uno.model.GameState;
 import jakarta.validation.Valid;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * <h2>Minimal Spring Boot “slice” for learning</h2>
- *
- * <p><b>What happens at startup</b><br>
- * Spring scans {@code com.kkhuu131.uno.backend} (and subpackages), finds this class and
- * {@link com.kkhuu131.uno.backend.service.GameSessionService}, creates one instance of each, and
- * passes the service into this controller’s constructor.</p>
- *
- * <p><b>What happens on each HTTP request</b><br>
- * Tomcat receives the request → Spring picks the method whose path + verb match → your method runs
- * → the return value is turned into JSON (for objects/records) or plain text (for {@link String}).</p>
- *
- * <p><b>Try it</b> (with the app running on port 8080):</p>
- * <pre>
- * curl http://localhost:8080/api/hello
- * curl -X POST http://localhost:8080/api/games
- * curl http://localhost:8080/api/games/PASTE_GAME_ID_HERE
- * </pre>
- */
 @RestController
 @RequestMapping("/api")
 public class GameController {
 
-	private final GameSessionService gameSessionService;
-	private final GameSnapshotMapper snapshotMapper;
+    private final GameSessionService gameSessionService;
+    private final GameSnapshotMapper snapshotMapper;
+    private final GameBroadcastService broadcastService;
 
-	public GameController(GameSessionService gameSessionService, GameSnapshotMapper snapshotMapper) {
-		this.gameSessionService = gameSessionService;
-		this.snapshotMapper = snapshotMapper;
-	}
+    public GameController(
+            GameSessionService gameSessionService,
+            GameSnapshotMapper snapshotMapper,
+            GameBroadcastService broadcastService) {
+        this.gameSessionService = gameSessionService;
+        this.snapshotMapper = snapshotMapper;
+        this.broadcastService = broadcastService;
+    }
 
-	/** Simplest endpoint: proves the server and mapping work. */
-	@GetMapping("/hello")
-	public String hello() {
-		return "Hello from UNO backend";
-	}
+    @GetMapping("/hello")
+    public String hello() {
+        return "Hello from UNO backend";
+    }
 
-	/**
-	 * Creates a new in-memory game using your {@link GameState} rules.
-	 * HTTP 201 Created + JSON body {@code {"gameId":"..."}} .
-	 */
-	@PostMapping("/games")
-	public ResponseEntity<GameCreatedResponse> createGame() {
-		String id = gameSessionService.createGame();
-		return ResponseEntity.status(HttpStatus.CREATED).body(new GameCreatedResponse(id));
-	}
+    @PostMapping("/games")
+    public ResponseEntity<GameCreatedResponse> createGame() {
+        String id = gameSessionService.createGame();
+        return ResponseEntity.status(HttpStatus.CREATED).body(new GameCreatedResponse(id));
+    }
 
-	/**
-	 * Loads a game by id. Returns 404 if the id is unknown (wrong id or server restarted).
-	 */
-	@GetMapping("/games/{gameId}")
-	public ResponseEntity<GameSnapshotResponse> getGame(@PathVariable String gameId) {
-		return gameSessionService
-				.findGame(gameId)
-				.map(state -> ResponseEntity.ok(snapshotMapper.toSnapshot(gameId, state)))
-				.orElseGet(() -> ResponseEntity.notFound().build());
-	}
+    /**
+     * Returns a personalized snapshot when X-Session-Id is provided for a lobby-created game.
+     * Falls back to a full snapshot for hot-seat games (no session mappings).
+     */
+    @GetMapping("/games/{gameId}")
+    public ResponseEntity<GameSnapshotResponse> getGame(
+            @PathVariable String gameId,
+            @RequestHeader(value = "X-Session-Id", required = false) String sessionId) {
+        return gameSessionService.findGame(gameId)
+                .map(state -> {
+                    Map<String, Integer> sessionMap = gameSessionService.getSessionMap(gameId);
+                    GameSnapshotResponse snap;
+                    if (sessionId != null && !sessionMap.isEmpty()) {
+                        int callerIdx = sessionMap.getOrDefault(sessionId, -1);
+                        snap = snapshotMapper.toSnapshot(gameId, state, callerIdx);
+                    } else {
+                        snap = snapshotMapper.toSnapshot(gameId, state);
+                    }
+                    return ResponseEntity.ok(snap);
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
 
-	/**
-	 * Draw one card from the deck. Set {@code endTurn} to true to advance the turn after drawing (e.g. draw and
-	 * pass). While a +2/+4 stack is pending, use {@link #passTurn} instead of drawing from the deck.
-	 */
-	@PostMapping("/games/{gameId}/draw")
-	public ResponseEntity<?> drawCard(@PathVariable String gameId, @Valid @RequestBody DrawCardRequest body) {
-		return gameSessionService
-				.drawCard(gameId, body)
-				.<ResponseEntity<?>>map(
-						outcome ->
-								ResponseEntity.ok(
-										new DrawCardResponse(
-												CardView.from(outcome.drawnCard()),
-												snapshotMapper.toSnapshot(gameId, outcome.state()))))
-				.orElse(ResponseEntity.notFound().build());
-	}
+    @PostMapping("/games/{gameId}/draw")
+    public ResponseEntity<?> drawCard(
+            @PathVariable String gameId,
+            @RequestHeader(value = "X-Session-Id", required = false) String sessionId,
+            @Valid @RequestBody DrawCardRequest body) {
+        validateCaller(gameId, sessionId, body.playerIndex());
+        return gameSessionService
+                .drawCard(gameId, body)
+                .<ResponseEntity<?>>map(outcome -> {
+                    broadcastService.broadcastUpdate(
+                            gameId, outcome.state(), gameSessionService.getSessionMap(gameId));
+                    return ResponseEntity.ok(new DrawCardResponse(
+                            CardView.from(outcome.drawnCard()),
+                            snapshotMapper.toSnapshot(gameId, outcome.state(), body.playerIndex())));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
 
-	/**
-	 * Pass the turn: if a draw stack is pending, take those cards; otherwise just advance. Use after drawing (without
-	 * playing) when {@code endTurn} on draw is not used, or to accept a +2/+4 stack.
-	 */
-	@PostMapping("/games/{gameId}/pass")
-	public ResponseEntity<?> passTurn(@PathVariable String gameId, @Valid @RequestBody PassTurnRequest body) {
-		return gameSessionService
-				.passTurn(gameId, body)
-				.<ResponseEntity<?>>map(state -> ResponseEntity.ok(snapshotMapper.toSnapshot(gameId, state)))
-				.orElse(ResponseEntity.notFound().build());
-	}
+    @PostMapping("/games/{gameId}/pass")
+    public ResponseEntity<?> passTurn(
+            @PathVariable String gameId,
+            @RequestHeader(value = "X-Session-Id", required = false) String sessionId,
+            @Valid @RequestBody PassTurnRequest body) {
+        validateCaller(gameId, sessionId, body.playerIndex());
+        return gameSessionService
+                .passTurn(gameId, body)
+                .<ResponseEntity<?>>map(state -> {
+                    broadcastService.broadcastUpdate(
+                            gameId, state, gameSessionService.getSessionMap(gameId));
+                    return ResponseEntity.ok(snapshotMapper.toSnapshot(gameId, state, body.playerIndex()));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
 
-	/**
-	 * Play a card from a player's hand. On success, returns the same fields as {@link #getGame(String)}.
-	 */
-	@PostMapping("/games/{gameId}/play")
-	public ResponseEntity<?> playCard(@PathVariable String gameId, @Valid @RequestBody PlayCardRequest body) {
-		return gameSessionService
-				.playCard(gameId, body)
-				.<ResponseEntity<?>>map(state -> ResponseEntity.ok(snapshotMapper.toSnapshot(gameId, state)))
-				.orElse(ResponseEntity.notFound().build());
-	}
+    @PostMapping("/games/{gameId}/play")
+    public ResponseEntity<?> playCard(
+            @PathVariable String gameId,
+            @RequestHeader(value = "X-Session-Id", required = false) String sessionId,
+            @Valid @RequestBody PlayCardRequest body) {
+        validateCaller(gameId, sessionId, body.playerIndex());
+        return gameSessionService
+                .playCard(gameId, body)
+                .<ResponseEntity<?>>map(state -> {
+                    broadcastService.broadcastUpdate(
+                            gameId, state, gameSessionService.getSessionMap(gameId));
+                    return ResponseEntity.ok(snapshotMapper.toSnapshot(gameId, state, body.playerIndex()));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * If the game was created via lobby (has session mappings), ensures the caller's sessionId
+     * matches the claimed playerIndex. Hot-seat games (no mappings) skip this check.
+     */
+    private void validateCaller(String gameId, String sessionId, int claimedPlayerIndex) {
+        Map<String, Integer> sessionMap = gameSessionService.getSessionMap(gameId);
+        if (sessionMap.isEmpty()) return;
+        if (sessionId == null || !Integer.valueOf(claimedPlayerIndex).equals(sessionMap.get(sessionId))) {
+            throw new ForbiddenActionException();
+        }
+    }
 }

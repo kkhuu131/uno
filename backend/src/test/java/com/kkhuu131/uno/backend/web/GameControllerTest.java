@@ -13,6 +13,7 @@ import com.kkhuu131.uno.backend.config.CorsProperties;
 import com.kkhuu131.uno.backend.config.WebConfig;
 import com.kkhuu131.uno.backend.exception.ApiExceptionHandler;
 import com.kkhuu131.uno.backend.exception.GameAlreadyFinishedException;
+import com.kkhuu131.uno.backend.service.GameBroadcastService;
 import com.kkhuu131.uno.backend.service.GameSessionService;
 import com.kkhuu131.uno.backend.web.dto.DrawCardRequest;
 import com.kkhuu131.uno.backend.web.dto.PlayCardRequest;
@@ -41,6 +42,9 @@ class GameControllerTest {
 
 	@MockitoBean
 	private GameSessionService gameSessionService;
+
+	@MockitoBean
+	private GameBroadcastService broadcastService;
 
 	@Test
 	void getGame_returnsSnapshotWithPlayersTopDiscardAndStatus() throws Exception {
