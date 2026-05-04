@@ -1,31 +1,48 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api/client'
-import type { GameSnapshot } from '../types'
+import type { CardView, GameSnapshot, PrivateHandUpdate } from '../types'
+import { getSessionId } from '../utils/session'
+import { useStompClient } from './useStompClient'
 
-export function useGame(gameId: string) {
-  const [snapshot, setSnapshot] = useState<GameSnapshot | null>(null)
+export function useGame(gameId: string, localPlayerIndex: number) {
+  const [publicSnapshot, setPublicSnapshot] = useState<GameSnapshot | null>(null)
+  const [privateHand, setPrivateHand] = useState<CardView[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const activeRef = useRef(true)
+  const sessionId = getSessionId()
 
-  const fetchSnapshot = useCallback(async () => {
-    try {
-      const data = await api.getGame(gameId)
-      if (activeRef.current) setSnapshot(data)
-    } catch {
-      // poll errors are silent; action errors surface separately
-    }
+  // Initial load via REST so the table is not blank before WS connects
+  useEffect(() => {
+    api.getGame(gameId).then(setPublicSnapshot).catch(() => {})
   }, [gameId])
 
-  useEffect(() => {
-    activeRef.current = true
-    fetchSnapshot()
-    const id = setInterval(fetchSnapshot, 1000)
-    return () => {
-      activeRef.current = false
-      clearInterval(id)
+  // STOMP subscriptions
+  useStompClient([
+    {
+      topic: `/topic/games/${gameId}`,
+      onMessage: (body) => setPublicSnapshot(body as GameSnapshot),
+    },
+    {
+      topic: `/topic/games/${gameId}/private/${sessionId}`,
+      onMessage: (body) => {
+        const update = body as PrivateHandUpdate
+        setPrivateHand(update.hand)
+      },
+    },
+  ])
+
+  // Merge: local player gets the private hand; opponents keep their redacted state
+  const snapshot = useMemo((): GameSnapshot | null => {
+    if (!publicSnapshot) return null
+    return {
+      ...publicSnapshot,
+      players: publicSnapshot.players.map((p, i) =>
+        i === localPlayerIndex
+          ? { ...p, hand: privateHand ?? [] }
+          : { ...p, hand: p.hand ?? [] },
+      ),
     }
-  }, [fetchSnapshot])
+  }, [publicSnapshot, privateHand, localPlayerIndex])
 
   const act = useCallback(
     async (fn: () => Promise<GameSnapshot | { game: GameSnapshot }>) => {
@@ -35,14 +52,17 @@ export function useGame(gameId: string) {
       try {
         const result = await fn()
         const snap = 'game' in result ? result.game : result
-        setSnapshot(snap)
+        setPublicSnapshot(snap)
+        if (snap.players[localPlayerIndex].hand) {
+          setPrivateHand(snap.players[localPlayerIndex].hand)
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Something went wrong')
       } finally {
         setBusy(false)
       }
     },
-    [busy],
+    [busy, localPlayerIndex],
   )
 
   const playCard = (playerIndex: number, handIndex: number, chosenColor?: string) =>
