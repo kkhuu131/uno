@@ -140,7 +140,7 @@ export function GameTable({ gameId, localPlayerIndex }: Props) {
     )
 
   const playableFlags: boolean[] = (localPlayer.hand ?? []).map(card =>
-    (isMyTurn && !busy)
+    (isMyTurn && !busy && status !== 'FINISHED')
       ? isCardPlayable(card, topDiscard, activeColor, pendingDrawStack)
       : false,
   )
