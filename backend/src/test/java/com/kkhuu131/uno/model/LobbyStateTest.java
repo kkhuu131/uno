@@ -63,6 +63,17 @@ class LobbyStateTest {
     }
 
     @Test
+    void removePlayer_unknownSessionId_isNoOp() {
+        LobbyState lobby = new LobbyState("UNO-TEST", "s0");
+        lobby.addPlayer(new LobbyPlayer("s0", "Alice", 0));
+
+        lobby.removePlayer("not-in-lobby");
+
+        assertThat(lobby.getPlayers()).hasSize(1);
+        assertThat(lobby.getHostSessionId()).isEqualTo("s0");
+    }
+
+    @Test
     void resetForRematch_setsWaitingAndClearsGameId() {
         LobbyState lobby = new LobbyState("UNO-TEST", "s0");
         lobby.addPlayer(new LobbyPlayer("s0", "Alice", 0));

@@ -19,7 +19,7 @@ public class LobbyState {
 
     public String getCode() { return code; }
 
-    public String getHostSessionId() { return hostSessionId; }
+    public synchronized String getHostSessionId() { return hostSessionId; }
 
     public synchronized LobbyStatus getStatus() { return status; }
 
