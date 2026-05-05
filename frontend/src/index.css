@@ -219,6 +219,16 @@ body {
   50%       { box-shadow: var(--card-shadow), 0 0 18px 6px rgba(255, 200, 50, 0.85); }
 }
 
+@keyframes btn-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+.btn--loading {
+  animation: btn-pulse 0.8s ease-in-out infinite !important;
+  cursor: wait;
+}
+
 .card--playable { animation: pulse-gold 1.4s ease-in-out infinite; }
 
 .card--invisible {
@@ -370,6 +380,13 @@ body {
   pointer-events: none;
 }
 
+.turn-banner--mine {
+  background: rgba(251, 191, 36, 0.9);
+  border: 2px solid rgba(251, 191, 36, 0.6);
+  box-shadow: 0 4px 20px rgba(251, 191, 36, 0.55);
+  color: #3a2800;
+}
+
 /* ─── Action bar ─────────────────────────────────────────────────────── */
 .action-bar {
   display: flex;
@@ -457,28 +474,31 @@ body {
   color: var(--text);
 }
 .color-picker__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  display: flex;
+  gap: 16px;
 }
-.color-btn {
-  width: 120px; height: 64px;
-  border: none; border-radius: var(--r-sm);
-  font-family: var(--font-display);
-  font-size: 1rem;
-  color: #fff;
+
+/* ── Color circles (WildColorPicker) ── */
+.color-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid #fff;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
-  transition: transform 0.15s cubic-bezier(.34,1.56,.64,1), box-shadow 0.15s;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+  transition: box-shadow 0.15s;
+  padding: 0;
 }
-.color-btn:hover  { transform: scale(1.08); }
-.color-btn:active { transform: scale(0.96); }
-.color-btn--RED    { background: var(--uno-red); }
-.color-btn--YELLOW { background: var(--uno-yellow); color: #3a2400; text-shadow: none; }
-.color-btn--GREEN  { background: var(--uno-green); }
-.color-btn--BLUE   { background: var(--uno-blue); }
-.color-btn:focus-visible { outline: 3px solid var(--active-glow); outline-offset: 3px; }
+.color-circle--RED    { background: var(--uno-red); }
+.color-circle--YELLOW { background: var(--uno-yellow); }
+.color-circle--GREEN  { background: var(--uno-green); }
+.color-circle--BLUE   { background: var(--uno-blue); }
+
+.color-circle--RED:hover    { box-shadow: 0 0 0 4px rgba(239,48,84,0.35),  0 6px 16px rgba(239,48,84,0.4); }
+.color-circle--YELLOW:hover { box-shadow: 0 0 0 4px rgba(255,184,0,0.35),  0 6px 16px rgba(255,184,0,0.4); }
+.color-circle--GREEN:hover  { box-shadow: 0 0 0 4px rgba(0,185,107,0.35),  0 6px 16px rgba(0,185,107,0.4); }
+.color-circle--BLUE:hover   { box-shadow: 0 0 0 4px rgba(26,127,232,0.35), 0 6px 16px rgba(26,127,232,0.4); }
+.color-circle:focus-visible { outline: 3px solid var(--active-glow); outline-offset: 3px; }
 
 .color-picker__cancel {
   font-family: var(--font-body);
