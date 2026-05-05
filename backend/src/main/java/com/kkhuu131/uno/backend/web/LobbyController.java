@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -82,5 +83,23 @@ public class LobbyController {
         return lobbySessionService.findLobby(code)
                 .map(lobby -> ResponseEntity.ok(snapshotMapper.toSnapshot(lobby)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{code}/leave")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void leaveLobby(
+            @PathVariable String code,
+            @RequestHeader("X-Session-Id") String sessionId) {
+        lobbySessionService.leaveLobby(code, sessionId);
+        lobbySessionService.findLobby(code).ifPresent(broadcastService::broadcastUpdate);
+    }
+
+    @PostMapping("/{code}/reset")
+    public ResponseEntity<LobbySnapshot> resetLobby(
+            @PathVariable String code,
+            @RequestHeader("X-Session-Id") String sessionId) {
+        LobbyState lobby = lobbySessionService.resetLobby(code, gameSessionService);
+        broadcastService.broadcastUpdate(lobby);
+        return ResponseEntity.ok(snapshotMapper.toSnapshot(lobby));
     }
 }
