@@ -22,6 +22,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     }
     throw new Error(message)
   }
+  if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
 }
 
@@ -69,4 +70,10 @@ export const api = {
 
   getLobby: (code: string) =>
     request<LobbySnapshot>(`/lobbies/${code}`),
+
+  resetLobby: (code: string) =>
+    request<LobbySnapshot>(`/lobbies/${code}/reset`, { method: 'POST' }),
+
+  leaveLobby: (code: string) =>
+    request<void>(`/lobbies/${code}/leave`, { method: 'POST' }),
 }
