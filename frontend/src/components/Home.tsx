@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { ArrowRight } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
@@ -89,8 +90,8 @@ export function Home() {
           className="btn btn--start"
           onClick={handleCreate}
           disabled={!!loading}
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.95 }}
         >
           {loading === 'create' ? 'Creating…' : '+ Create Game'}
         </motion.button>
@@ -110,10 +111,14 @@ export function Home() {
             className="btn btn--join"
             onClick={handleJoin}
             disabled={!!loading}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.95 }}
           >
-            {loading === 'join' ? 'Joining…' : 'Join →'}
+            {loading === 'join' ? 'Joining…' : (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                Join <ArrowRight size={16} />
+              </span>
+            )}
           </motion.button>
         </div>
       </motion.div>
