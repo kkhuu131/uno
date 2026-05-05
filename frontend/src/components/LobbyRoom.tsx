@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type { LobbySnapshot } from '../types'
-import { getSessionId } from '../utils/session'
+import { getSessionId, setLobbyCode } from '../utils/session'
 import { useStompClient } from '../hooks/useStompClient'
 export function LobbyRoom() {
   const { code } = useParams<{ code: string }>()
@@ -19,6 +19,7 @@ export function LobbyRoom() {
   // Initial REST load
   useEffect(() => {
     if (!code) return
+    setLobbyCode(code)
     api.getLobby(code)
       .then(setLobby)
       .catch(() => setError('Lobby not found'))
@@ -31,13 +32,11 @@ export function LobbyRoom() {
           const snap = body as LobbySnapshot
           setLobby(snap)
           if (snap.status === 'IN_PROGRESS' && snap.gameId) {
-            navigate('/game/' + snap.gameId, {
-              state: {
-                playerIndex: snap.players.find(
-                  (p) => p.playerIndex === parseInt(sessionStorage.getItem('uno_player_index') ?? '-1')
-                )?.playerIndex ?? 0,
-              },
-            })
+            const myLobbyIndex = parseInt(sessionStorage.getItem('uno_player_index') ?? '-1')
+            const myGameIndex = snap.players.findIndex(p => p.playerIndex === myLobbyIndex)
+            const gameIndex = myGameIndex >= 0 ? myGameIndex : 0
+            sessionStorage.setItem('uno_player_index', String(gameIndex))
+            navigate('/game/' + snap.gameId, { state: { playerIndex: gameIndex } })
           }
         }}]
       : []
@@ -56,9 +55,8 @@ export function LobbyRoom() {
     setStarting(true)
     setError(null)
     try {
-      const { gameId } = await api.startGame(code)
-      const playerIndex = parseInt(sessionStorage.getItem('uno_player_index') ?? '0')
-      navigate('/game/' + gameId, { state: { playerIndex } })
+      await api.startGame(code)
+      // Navigation is handled by the STOMP broadcast when lobby status → IN_PROGRESS
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to start game')
       setStarting(false)
