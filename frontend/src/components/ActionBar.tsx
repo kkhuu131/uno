@@ -75,7 +75,7 @@ export function ActionBar({ pendingDrawStack, hasDrawnThisTurn, noPlayableCards,
 
       <div className="action-bar__buttons">
         <motion.button
-          className={`btn btn--draw${busy && drawDisabled ? ' btn--loading' : ''}`}
+          className={`btn btn--draw${busy && !pendingDrawStack && !hasDrawnThisTurn ? ' btn--loading' : ''}`}
           onClick={onDraw}
           disabled={drawDisabled}
           whileHover={drawDisabled ? {} : { scale: 1.04 }}

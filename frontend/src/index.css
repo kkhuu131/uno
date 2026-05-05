@@ -420,10 +420,8 @@ body {
   box-shadow: 0 3px 10px rgba(0,0,0,0.1);
 }
 .btn:hover:not(:disabled) {
-  transform: translateY(-3px) scale(1.03);
   box-shadow: 0 6px 18px rgba(0,0,0,0.14);
 }
-.btn:active:not(:disabled) { transform: scale(0.97); }
 .btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .btn:focus-visible { outline: 3px solid var(--active-glow); outline-offset: 2px; }
 
