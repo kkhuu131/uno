@@ -8,11 +8,12 @@ interface Props {
   disabled?: boolean
   dimmed?: boolean
   hidden?: boolean
+  isPlayable?: boolean
   style?: React.CSSProperties
   className?: string
 }
 
-export function Card({ card, onClick, disabled, dimmed, hidden, style, className }: Props) {
+export function Card({ card, onClick, disabled, dimmed, hidden, isPlayable, style, className }: Props) {
   const src = getCardImageSrc(card)
   const interactive = !!onClick && !disabled
 
@@ -25,6 +26,7 @@ export function Card({ card, onClick, disabled, dimmed, hidden, style, className
         interactive ? 'card--interactive' : '',
         dimmed ? 'card--dimmed' : '',
         hidden ? 'card--invisible' : '',
+        isPlayable ? 'card--playable' : '',
         className ?? '',
       ]
         .filter(Boolean)
