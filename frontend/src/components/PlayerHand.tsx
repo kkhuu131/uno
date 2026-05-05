@@ -12,6 +12,7 @@ interface Props {
   busy?: boolean
   hiddenHandIndex?: number | null
   handRef?: React.Ref<HTMLDivElement>
+  playableFlags?: boolean[]
 }
 
 const CARD_W = 82
@@ -35,6 +36,7 @@ export function PlayerHand({
   busy,
   hiddenHandIndex,
   handRef,
+  playableFlags,
 }: Props) {
   const count = hand.length
   const gap = handGap(count)
@@ -76,6 +78,7 @@ export function PlayerHand({
                 disabled={!isCurrentPlayer || busy}
                 dimmed={!isCurrentPlayer}
                 hidden={hiddenHandIndex === i}
+                isPlayable={playableFlags?.[i] ?? false}
               />
             </TiltWrapper>
           )
