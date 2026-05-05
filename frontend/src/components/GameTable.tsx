@@ -139,6 +139,12 @@ export function GameTable({ gameId, localPlayerIndex }: Props) {
       card => !isCardPlayable(card, topDiscard, activeColor, pendingDrawStack),
     )
 
+  const playableFlags: boolean[] = (localPlayer.hand ?? []).map(card =>
+    (isMyTurn && !busy)
+      ? isCardPlayable(card, topDiscard, activeColor, pendingDrawStack)
+      : false,
+  )
+
   // Build render order: local player at slot 0, others clockwise
   const totalPlayers = players.length
   const renderOrder = Array.from({ length: totalPlayers }, (_, slot) =>
@@ -316,6 +322,7 @@ export function GameTable({ gameId, localPlayerIndex }: Props) {
             hiddenCard?.playerIndex === localPlayerIndex ? hiddenCard.handIndex : null
           }
           handRef={localHandRef}
+          playableFlags={playableFlags}
         />
 
         <div className="player-info">
