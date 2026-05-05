@@ -116,5 +116,6 @@ Reads `lobbyCode = getLobbyCode()` from session.
 ## Out of Scope
 
 - **Lobby TTL / idle cleanup**: abandoned lobbies (post-game or otherwise) are not evicted. This is a pre-existing issue and will be addressed in a separate task.
+- **AFK host after game ends**: if the host stays on the game over screen while everyone else returns to the lobby, no one can start the new game — the lobby is stuck until the host navigates back or leaves. Fixing this properly requires WebSocket disconnect detection / heartbeat tracking (to know who is "present" in the lobby), which is the same infrastructure needed for TTL cleanup. Both will be addressed together in that future task.
 - **Kick / force-leave**: no mechanism for the host to remove players.
 - **Spectator mode**: players who navigate back to a lobby mid-game cannot join as spectators.
