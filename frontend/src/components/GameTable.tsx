@@ -246,7 +246,7 @@ export function GameTable({ gameId, localPlayerIndex }: Props) {
 
   return (
     <div className="table">
-      <TurnBanner visible={bannerVisible} name={bannerName} />
+      <TurnBanner visible={bannerVisible} name={bannerName} isMyTurn={isMyTurn} />
 
       {/* ── Circular opponent slots ── */}
       {renderOrder.slice(1).map((playerIdx, i) => {
