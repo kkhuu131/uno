@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { X } from 'lucide-react'
 
 interface Props {
   message: string
@@ -15,7 +16,7 @@ export function Toast({ message, onDismiss }: Props) {
     <div className="toast" role="alert">
       <span>{message}</span>
       <button className="toast__close" onClick={onDismiss} aria-label="Dismiss">
-        ✕
+        <X size={14} />
       </button>
     </div>
   )
