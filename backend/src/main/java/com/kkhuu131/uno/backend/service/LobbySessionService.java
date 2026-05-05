@@ -4,6 +4,7 @@ import com.kkhuu131.uno.backend.exception.ForbiddenActionException;
 import com.kkhuu131.uno.backend.exception.LobbyAlreadyStartedException;
 import com.kkhuu131.uno.backend.exception.LobbyFullException;
 import com.kkhuu131.uno.backend.exception.LobbyNotFoundException;
+import com.kkhuu131.uno.model.GameState;
 import com.kkhuu131.uno.model.LobbyPlayer;
 import com.kkhuu131.uno.model.LobbyState;
 import com.kkhuu131.uno.model.LobbyStatus;
@@ -70,6 +71,26 @@ public class LobbySessionService {
 
     public Optional<LobbyState> findLobby(String code) {
         return Optional.ofNullable(lobbies.get(code));
+    }
+
+    public void leaveLobby(String code, String sessionId) {
+        LobbyState lobby = lobbies.get(code);
+        if (lobby == null) return;
+        lobby.removePlayer(sessionId);
+        if (lobby.getPlayerCount() == 0) {
+            lobbies.remove(code);
+        }
+    }
+
+    public LobbyState resetLobby(String code, GameSessionService gameSessionService) {
+        LobbyState lobby = requireLobby(code);
+        if (lobby.getStatus() != LobbyStatus.IN_PROGRESS) return lobby;
+        boolean gameFinished = gameSessionService.findGame(lobby.getGameId())
+                .map(GameState::hasWinner)
+                .orElse(false);
+        if (!gameFinished) return lobby;
+        lobby.resetForRematch();
+        return lobby;
     }
 
     private LobbyState requireLobby(String code) {

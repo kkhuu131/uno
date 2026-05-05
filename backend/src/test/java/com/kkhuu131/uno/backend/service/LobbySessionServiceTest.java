@@ -78,4 +78,69 @@ class LobbySessionServiceTest {
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("2");
     }
+
+    @Test
+    void leaveLobby_removesPlayer() {
+        LobbyState lobby = lobbySessionService.createLobby("s-leave-host", "Host");
+        lobbySessionService.joinLobby(lobby.getCode(), "s-leave-guest", "Guest");
+
+        lobbySessionService.leaveLobby(lobby.getCode(), "s-leave-guest");
+
+        LobbyState updated = lobbySessionService.findLobby(lobby.getCode()).orElseThrow();
+        assertThat(updated.getPlayers()).hasSize(1);
+        assertThat(updated.getPlayers().get(0).sessionId()).isEqualTo("s-leave-host");
+    }
+
+    @Test
+    void leaveLobby_lastPlayer_removesLobby() {
+        LobbyState lobby = lobbySessionService.createLobby("s-last-only", "Solo");
+        String code = lobby.getCode();
+
+        lobbySessionService.leaveLobby(code, "s-last-only");
+
+        assertThat(lobbySessionService.findLobby(code)).isEmpty();
+    }
+
+    @Test
+    void resetLobby_whenAlreadyWaiting_isNoOp() {
+        LobbyState lobby = lobbySessionService.createLobby("s-reset-wait", "Host");
+
+        LobbyState result = lobbySessionService.resetLobby(lobby.getCode(), gameSessionService);
+
+        assertThat(result.getStatus()).isEqualTo(LobbyStatus.WAITING);
+    }
+
+    @Test
+    void resetLobby_withUnfinishedGame_isNoOp() {
+        LobbyState lobby = lobbySessionService.createLobby("s-reset-noop-h", "Host");
+        lobbySessionService.joinLobby(lobby.getCode(), "s-reset-noop-g", "Guest");
+        lobbySessionService.startGame(lobby.getCode(), "s-reset-noop-h", gameSessionService);
+
+        LobbyState result = lobbySessionService.resetLobby(lobby.getCode(), gameSessionService);
+
+        assertThat(result.getStatus()).isEqualTo(LobbyStatus.IN_PROGRESS);
+    }
+
+    @Test
+    void resetLobby_withFinishedGame_resetsToWaiting() {
+        LobbyState lobby = lobbySessionService.createLobby("s-reset-fin-h", "Host");
+        lobbySessionService.joinLobby(lobby.getCode(), "s-reset-fin-g", "Guest");
+        String gameId = lobbySessionService.startGame(lobby.getCode(), "s-reset-fin-h", gameSessionService);
+
+        // Force game into finished state by emptying a player's hand via reflection
+        com.kkhuu131.uno.model.GameState game =
+                gameSessionService.findGame(gameId).orElseThrow();
+        java.util.List<com.kkhuu131.uno.model.Player> players =
+                (java.util.List<com.kkhuu131.uno.model.Player>) org.springframework.test.util.ReflectionTestUtils
+                        .getField(game, "players");
+        java.util.List<com.kkhuu131.uno.model.Card> hand =
+                (java.util.List<com.kkhuu131.uno.model.Card>) org.springframework.test.util.ReflectionTestUtils
+                        .getField(players.get(0), "hand");
+        hand.clear();
+
+        LobbyState result = lobbySessionService.resetLobby(lobby.getCode(), gameSessionService);
+
+        assertThat(result.getStatus()).isEqualTo(LobbyStatus.WAITING);
+        assertThat(result.getGameId()).isNull();
+    }
 }
