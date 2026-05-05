@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { Crown, Copy, Check } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
@@ -82,9 +83,19 @@ export function LobbyRoom() {
 
         <div className="lobby__code-row">
           <span className="lobby__code">{code}</span>
-          <button className="btn btn--copy" onClick={copyCode}>
-            {copied ? 'Copied!' : 'Copy'}
-          </button>
+          <motion.button
+            className="btn btn--copy"
+            onClick={copyCode}
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.94 }}
+            animate={copied ? { scale: [1, 1.12, 1] } : {}}
+            transition={{ duration: 0.3 }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? 'Copied!' : 'Copy'}
+            </span>
+          </motion.button>
         </div>
 
         <p className="lobby__hint">Share this code with friends to invite them</p>
@@ -98,7 +109,9 @@ export function LobbyRoom() {
               animate={{ opacity: 1, x: 0 }}
             >
               {p.playerIndex === lobby.hostPlayerIndex && (
-                <span className="lobby__host-crown">♛</span>
+                <span className="lobby__host-crown">
+                  <Crown size={16} />
+                </span>
               )}
               {p.displayName}
             </motion.li>
