@@ -214,6 +214,13 @@ body {
 
 .card--dimmed { filter: brightness(0.75) saturate(0.65); }
 
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: var(--card-shadow), 0 0 8px 2px rgba(255, 200, 50, 0.4); }
+  50%       { box-shadow: var(--card-shadow), 0 0 18px 6px rgba(255, 200, 50, 0.85); }
+}
+
+.card--playable { animation: pulse-gold 1.4s ease-in-out infinite; }
+
 .card--invisible {
   opacity: 0 !important;
   pointer-events: none;
