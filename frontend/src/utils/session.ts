@@ -17,3 +17,17 @@ export function getDisplayName(): string {
 export function setDisplayName(name: string): void {
   localStorage.setItem(DISPLAY_NAME_KEY, name.trim())
 }
+
+const LOBBY_CODE_KEY = 'uno_lobby_code'
+
+export function getLobbyCode(): string | null {
+  return sessionStorage.getItem(LOBBY_CODE_KEY)
+}
+
+export function setLobbyCode(code: string): void {
+  sessionStorage.setItem(LOBBY_CODE_KEY, code)
+}
+
+export function clearLobbyCode(): void {
+  sessionStorage.removeItem(LOBBY_CODE_KEY)
+}
