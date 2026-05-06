@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { api } from '../api/client'
 import { useGame } from '../hooks/useGame'
+import { clearLobbyCode, getLobbyCode } from '../utils/session'
 import type { CardColor, CardView, GameSnapshot } from '../types'
 import { getDeckImageSrc } from '../utils/cardImage'
 import { ActionBar } from './ActionBar'
@@ -71,6 +73,21 @@ interface Props {
 
 export function GameTable({ gameId, localPlayerIndex }: Props) {
   const navigate = useNavigate()
+  const lobbyCode = getLobbyCode()
+
+  async function handlePlayAgain() {
+    if (!lobbyCode) return
+    await api.resetLobby(lobbyCode)
+    navigate('/lobby/' + lobbyCode)
+  }
+
+  async function handleLeaveLobby() {
+    if (!lobbyCode) return
+    await api.leaveLobby(lobbyCode)
+    clearLobbyCode()
+    navigate('/')
+  }
+
   const { snapshot, error, busy, clearError, playCard, passTurn, autoDrawLoopRef } = useGame(
     gameId,
     localPlayerIndex,
@@ -339,7 +356,12 @@ export function GameTable({ gameId, localPlayerIndex }: Props) {
       )}
 
       {status === 'FINISHED' && winnerName && (
-        <GameOver winnerName={winnerName} onNewGame={() => navigate('/')} />
+        <GameOver
+          winnerName={winnerName}
+          onNewGame={() => navigate('/')}
+          onPlayAgain={lobbyCode ? handlePlayAgain : undefined}
+          onLeaveLobby={lobbyCode ? handleLeaveLobby : undefined}
+        />
       )}
 
       {error && <Toast message={error} onDismiss={clearError} />}

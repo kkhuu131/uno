@@ -4,9 +4,11 @@ import { AutoConfetti } from './Confetti'
 interface Props {
   winnerName: string
   onNewGame: () => void
+  onPlayAgain?: () => void
+  onLeaveLobby?: () => void
 }
 
-export function GameOver({ winnerName, onNewGame }: Props) {
+export function GameOver({ winnerName, onNewGame, onPlayAgain, onLeaveLobby }: Props) {
   return (
     <>
       <AutoConfetti active />
@@ -39,14 +41,35 @@ export function GameOver({ winnerName, onNewGame }: Props) {
             </motion.span>
           </div>
 
-          <motion.button
-            className="btn btn--newgame"
-            onClick={onNewGame}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.96 }}
-          >
-            Play Again
-          </motion.button>
+          {onPlayAgain && onLeaveLobby ? (
+            <div className="gameover__actions">
+              <motion.button
+                className="btn btn--newgame"
+                onClick={onPlayAgain}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                Play Again
+              </motion.button>
+              <motion.button
+                className="btn btn--leave"
+                onClick={onLeaveLobby}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                Leave Lobby
+              </motion.button>
+            </div>
+          ) : (
+            <motion.button
+              className="btn btn--newgame"
+              onClick={onNewGame}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.96 }}
+            >
+              New Game
+            </motion.button>
+          )}
         </motion.div>
       </div>
     </>
