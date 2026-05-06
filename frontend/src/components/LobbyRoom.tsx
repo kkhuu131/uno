@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type { LobbySnapshot } from '../types'
-import { getSessionId, setLobbyCode } from '../utils/session'
+import { clearLobbyCode, getSessionId, setLobbyCode } from '../utils/session'
 import { useStompClient } from '../hooks/useStompClient'
 export function LobbyRoom() {
   const { code } = useParams<{ code: string }>()
@@ -12,6 +12,7 @@ export function LobbyRoom() {
   const [lobby, setLobby] = useState<LobbySnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
+  const [leaving, setLeaving] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const sessionId = getSessionId()
@@ -48,6 +49,19 @@ export function LobbyRoom() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
+  }
+
+  async function handleLeave() {
+    if (!code) return
+    setLeaving(true)
+    try {
+      await api.leaveLobby(code)
+      clearLobbyCode()
+      navigate('/')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to leave lobby')
+      setLeaving(false)
+    }
   }
 
   async function handleStart() {
@@ -137,6 +151,16 @@ export function LobbyRoom() {
         {!isHost && (
           <p className="lobby__waiting">Waiting for the host to start the game…</p>
         )}
+
+        <motion.button
+          className="btn btn--leave"
+          onClick={handleLeave}
+          disabled={leaving}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+        >
+          {leaving ? 'Leaving…' : 'Leave Lobby'}
+        </motion.button>
       </motion.div>
     </div>
   )
