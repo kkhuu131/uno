@@ -74,18 +74,27 @@ interface Props {
 export function GameTable({ gameId, localPlayerIndex }: Props) {
   const navigate = useNavigate()
   const lobbyCode = getLobbyCode()
+  const [lobbyError, setLobbyError] = useState<string | null>(null)
 
   async function handlePlayAgain() {
     if (!lobbyCode) return
-    await api.resetLobby(lobbyCode)
-    navigate('/lobby/' + lobbyCode)
+    try {
+      await api.resetLobby(lobbyCode)
+      navigate('/lobby/' + lobbyCode)
+    } catch {
+      setLobbyError('Failed to reset lobby. Please try again.')
+    }
   }
 
   async function handleLeaveLobby() {
     if (!lobbyCode) return
-    await api.leaveLobby(lobbyCode)
-    clearLobbyCode()
-    navigate('/')
+    try {
+      await api.leaveLobby(lobbyCode)
+      clearLobbyCode()
+      navigate('/')
+    } catch {
+      setLobbyError('Failed to leave lobby. Please try again.')
+    }
   }
 
   const { snapshot, error, busy, clearError, playCard, passTurn, autoDrawLoopRef } = useGame(
@@ -364,7 +373,9 @@ export function GameTable({ gameId, localPlayerIndex }: Props) {
         />
       )}
 
-      {error && <Toast message={error} onDismiss={clearError} />}
+      {(error || lobbyError) && (
+        <Toast message={error ?? lobbyError!} onDismiss={() => { clearError(); setLobbyError(null) }} />
+      )}
     </div>
   )
 }
