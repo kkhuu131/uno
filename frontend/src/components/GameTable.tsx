@@ -51,8 +51,8 @@ function isCardPlayable(
   pendingDrawStack: boolean,
 ): boolean {
   if (pendingDrawStack) {
-    if (card.kind === 'ACTION' && card.action === 'DRAW_TWO') return true
     if (card.kind === 'WILD' && card.wildType === 'WILD_DRAW_FOUR') return true
+    if (card.kind === 'ACTION' && card.action === 'DRAW_TWO' && topDiscard?.action === 'DRAW_TWO') return true
     return false
   }
   if (card.kind === 'WILD') return true

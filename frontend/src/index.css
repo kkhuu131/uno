@@ -592,9 +592,9 @@ body {
 
 .btn--leave {
   background: transparent;
-  color: var(--text-muted, #888);
-  border: 1.5px solid currentColor;
-  border-radius: 10px;
+  color: var(--text-dim);
+  border: 2px solid var(--border);
+  border-radius: var(--r-pill);
   padding: 0.65rem 1.5rem;
   font-size: 0.95rem;
   font-weight: 600;
@@ -602,9 +602,13 @@ body {
   width: 100%;
 }
 
-.btn--leave:hover {
-  color: var(--text, #ccc);
-  border-color: currentColor;
+.btn--leave:hover:not(:disabled) {
+  background: var(--border);
+  color: var(--text);
+}
+
+.lobby__card .btn--leave {
+  margin-top: 20px;
 }
 
 /* ─── Confetti ───────────────────────────────────────────────────────── */
