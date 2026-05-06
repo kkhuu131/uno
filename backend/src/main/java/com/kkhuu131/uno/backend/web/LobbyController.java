@@ -11,6 +11,7 @@ import com.kkhuu131.uno.backend.web.dto.LobbySnapshot;
 import com.kkhuu131.uno.backend.web.dto.StartGameResponse;
 import com.kkhuu131.uno.model.LobbyState;
 import jakarta.validation.Valid;
+import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -98,8 +99,9 @@ public class LobbyController {
     public ResponseEntity<LobbySnapshot> resetLobby(
             @PathVariable String code,
             @RequestHeader("X-Session-Id") String sessionId) {
-        LobbyState lobby = lobbySessionService.resetLobby(code, gameSessionService);
-        broadcastService.broadcastUpdate(lobby);
+        Optional<LobbyState> reset = lobbySessionService.resetLobby(code, gameSessionService);
+        LobbyState lobby = reset.orElseGet(() -> lobbySessionService.findLobby(code).orElseThrow());
+        reset.ifPresent(broadcastService::broadcastUpdate);
         return ResponseEntity.ok(snapshotMapper.toSnapshot(lobby));
     }
 }

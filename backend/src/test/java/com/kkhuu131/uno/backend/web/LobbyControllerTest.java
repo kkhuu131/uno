@@ -71,7 +71,7 @@ class LobbyControllerTest {
     void resetLobby_returns200WithSnapshot_andBroadcasts() throws Exception {
         LobbyState lobby = twoPlayerLobby("UNO-EFGH", "s0");
         when(lobbySessionService.resetLobby(eq("UNO-EFGH"), any(GameSessionService.class)))
-                .thenReturn(lobby);
+                .thenReturn(Optional.of(lobby));
 
         mvc.perform(post("/api/lobbies/UNO-EFGH/reset")
                 .header("X-Session-Id", "s0"))
@@ -79,6 +79,21 @@ class LobbyControllerTest {
                 .andExpect(jsonPath("$.code").value("UNO-EFGH"));
 
         verify(broadcastService).broadcastUpdate(lobby);
+    }
+
+    @Test
+    void resetLobby_noOp_returns200WithSnapshot_andNoBroadcast() throws Exception {
+        LobbyState lobby = twoPlayerLobby("UNO-EFGH", "s0");
+        when(lobbySessionService.resetLobby(eq("UNO-EFGH"), any(GameSessionService.class)))
+                .thenReturn(Optional.empty());
+        when(lobbySessionService.findLobby("UNO-EFGH")).thenReturn(Optional.of(lobby));
+
+        mvc.perform(post("/api/lobbies/UNO-EFGH/reset")
+                .header("X-Session-Id", "s0"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("UNO-EFGH"));
+
+        verify(broadcastService, never()).broadcastUpdate(any());
     }
 
     @Test

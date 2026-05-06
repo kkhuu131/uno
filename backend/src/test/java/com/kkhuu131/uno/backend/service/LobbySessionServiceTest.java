@@ -6,6 +6,7 @@ import com.kkhuu131.uno.backend.exception.LobbyFullException;
 import com.kkhuu131.uno.backend.exception.LobbyNotFoundException;
 import com.kkhuu131.uno.model.LobbyState;
 import com.kkhuu131.uno.model.LobbyStatus;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -105,9 +106,9 @@ class LobbySessionServiceTest {
     void resetLobby_whenAlreadyWaiting_isNoOp() {
         LobbyState lobby = lobbySessionService.createLobby("s-reset-wait", "Host");
 
-        LobbyState result = lobbySessionService.resetLobby(lobby.getCode(), gameSessionService);
+        Optional<LobbyState> result = lobbySessionService.resetLobby(lobby.getCode(), gameSessionService);
 
-        assertThat(result.getStatus()).isEqualTo(LobbyStatus.WAITING);
+        assertThat(result).isEmpty();
     }
 
     @Test
@@ -116,9 +117,9 @@ class LobbySessionServiceTest {
         lobbySessionService.joinLobby(lobby.getCode(), "s-reset-noop-g", "Guest");
         lobbySessionService.startGame(lobby.getCode(), "s-reset-noop-h", gameSessionService);
 
-        LobbyState result = lobbySessionService.resetLobby(lobby.getCode(), gameSessionService);
+        Optional<LobbyState> result = lobbySessionService.resetLobby(lobby.getCode(), gameSessionService);
 
-        assertThat(result.getStatus()).isEqualTo(LobbyStatus.IN_PROGRESS);
+        assertThat(result).isEmpty();
     }
 
     @Test
@@ -138,9 +139,10 @@ class LobbySessionServiceTest {
                         .getField(players.get(0), "hand");
         hand.clear();
 
-        LobbyState result = lobbySessionService.resetLobby(lobby.getCode(), gameSessionService);
+        Optional<LobbyState> result = lobbySessionService.resetLobby(lobby.getCode(), gameSessionService);
 
-        assertThat(result.getStatus()).isEqualTo(LobbyStatus.WAITING);
-        assertThat(result.getGameId()).isNull();
+        assertThat(result).isPresent();
+        assertThat(result.get().getStatus()).isEqualTo(LobbyStatus.WAITING);
+        assertThat(result.get().getGameId()).isNull();
     }
 }

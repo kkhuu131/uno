@@ -82,15 +82,15 @@ public class LobbySessionService {
         }
     }
 
-    public LobbyState resetLobby(String code, GameSessionService gameSessionService) {
+    public Optional<LobbyState> resetLobby(String code, GameSessionService gameSessionService) {
         LobbyState lobby = requireLobby(code);
-        if (lobby.getStatus() != LobbyStatus.IN_PROGRESS) return lobby;
+        if (lobby.getStatus() != LobbyStatus.IN_PROGRESS) return Optional.empty();
         boolean gameFinished = gameSessionService.findGame(lobby.getGameId())
                 .map(GameState::hasWinner)
                 .orElse(false);
-        if (!gameFinished) return lobby;
+        if (!gameFinished) return Optional.empty();
         lobby.resetForRematch();
-        return lobby;
+        return Optional.of(lobby);
     }
 
     private LobbyState requireLobby(String code) {
